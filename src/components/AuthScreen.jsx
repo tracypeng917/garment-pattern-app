@@ -77,44 +77,44 @@ export default function AuthScreen({ onRegister }) {
   }
 
   return (
-    <div className="page-content fade-in">
+    <div className="fade-in">
       <div style={{
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        padding: '40px 24px 32px',
+        padding: '12px 24px 16px',
       }}>
         {/* Hero 标题区 */}
         <div style={{
-          width: 72,
-          height: 72,
-          borderRadius: 20,
+          width: 56,
+          height: 56,
+          borderRadius: 16,
           background: 'linear-gradient(135deg, var(--primary), var(--primary-light))',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: 36,
-          marginBottom: 16,
-          boxShadow: '0 8px 24px rgba(108, 92, 231, 0.35)',
+          fontSize: 28,
+          marginBottom: 10,
+          boxShadow: '0 6px 18px rgba(108, 92, 231, 0.35)',
         }}>
           ✂️
         </div>
         <h1 style={{
-          fontSize: 26,
+          fontSize: 22,
           fontWeight: 800,
           color: 'var(--text)',
-          marginBottom: 6,
+          marginBottom: 4,
         }}>
           智裁 PatternAI
         </h1>
         <p style={{
-          fontSize: 14,
+          fontSize: 12,
           color: 'var(--text-secondary)',
           textAlign: 'center',
-          lineHeight: 1.6,
+          lineHeight: 1.5,
         }}>
-          AI 服装纸样生成工具<br/>
-          <span style={{ fontSize: 12, color: 'var(--text-light)' }}>
+          AI 服装纸样生成工具
+          <span style={{ fontSize: 11, color: 'var(--text-light)', marginLeft: 6 }}>
             AI Garment Pattern Generator
           </span>
         </p>
@@ -354,8 +354,8 @@ export default function AuthScreen({ onRegister }) {
         )}
 
         {/* 注册按钮 */}
-        <button className="btn btn-primary" onClick={handleRegister}>
-          {existingUser ? '注册并切换账号' : '注册 / Register'}
+        <button className="btn btn-primary" onClick={handleRegister} style={{ width: '100%', marginTop: 4 }}>
+          {existingUser ? '注册并切换账号 / Switch Account' : '注册 / Register'}
         </button>
       </div>
 

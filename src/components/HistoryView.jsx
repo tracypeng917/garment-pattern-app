@@ -32,7 +32,7 @@ function relativeTime(isoStr) {
   return formatDateTime(isoStr).date
 }
 
-export default function HistoryView({ onBack }) {
+export default function HistoryView({ onBack, onRestore }) {
   const [records, setRecords] = useState([])
   const [expandedId, setExpandedId] = useState(null)
   const [previewImage, setPreviewImage] = useState(null)
@@ -66,6 +66,12 @@ export default function HistoryView({ onBack }) {
     setRecords([])
     setExpandedId(null)
     setConfirmClear(false)
+  }
+
+  const handleRestore = (record) => {
+    if (onRestore) {
+      onRestore(record)
+    }
   }
 
   return (
@@ -152,6 +158,9 @@ export default function HistoryView({ onBack }) {
               const expanded = expandedId === record.id
               const images = Array.isArray(record.images) ? record.images : []
               const thumb = record.thumbnail || images[0] || ''
+              const versions = Array.isArray(record.versions) ? record.versions : []
+              const latestVersion = versions.length > 0 ? versions[versions.length - 1] : null
+              const versionCount = versions.length || 1
 
               return (
                 <div
@@ -170,22 +179,28 @@ export default function HistoryView({ onBack }) {
                       cursor: 'pointer',
                     }}
                   >
-                    {/* 缩略图 */}
-                    <div style={{
-                      width: 64,
-                      height: 64,
-                      borderRadius: 'var(--radius-sm)',
-                      background: thumb
-                        ? 'transparent'
-                        : 'linear-gradient(135deg, #f0f0f5, #e8e8f0)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 28,
-                      flexShrink: 0,
-                      overflow: 'hidden',
-                      position: 'relative',
-                    }}>
+                    {/* 缩略图（点击恢复） */}
+                    <div
+                      style={{
+                        width: 64,
+                        height: 64,
+                        borderRadius: 'var(--radius-sm)',
+                        background: thumb
+                          ? 'transparent'
+                          : 'linear-gradient(135deg, #f0f0f5, #e8e8f0)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 28,
+                        flexShrink: 0,
+                        overflow: 'hidden',
+                        position: 'relative',
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleRestore(record)
+                      }}
+                    >
                       {thumb ? (
                         <img
                           src={thumb}
@@ -199,6 +214,21 @@ export default function HistoryView({ onBack }) {
                       ) : (
                         '👗'
                       )}
+                      {/* 恢复提示 */}
+                      <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'rgba(108, 92, 231, 0.5)',
+                        opacity: 0,
+                        transition: 'opacity 0.2s',
+                        borderRadius: 'var(--radius-sm)',
+                      }}
+                        className="restore-overlay">
+                        <span style={{ fontSize: 20 }}>📐</span>
+                      </div>
                       {images.length > 1 && (
                         <div style={{
                           position: 'absolute',
@@ -243,16 +273,30 @@ export default function HistoryView({ onBack }) {
                       <div style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 8,
+                        gap: 6,
                         marginTop: 6,
                         flexWrap: 'wrap',
                       }}>
+                        {/* 版本徽章 */}
+                        <span style={{
+                          fontSize: 11,
+                          padding: '2px 8px',
+                          borderRadius: 20,
+                          background: versionCount > 1
+                            ? 'rgba(0, 184, 148, 0.1)'
+                            : 'rgba(108, 92, 231, 0.1)',
+                          color: versionCount > 1 ? 'var(--success)' : 'var(--primary)',
+                          fontWeight: 700,
+                        }}>
+                          V{latestVersion?.version || 1}
+                          {versionCount > 1 && ` (${versionCount}版本)`}
+                        </span>
                         {record.sizeLabel && (
                           <span style={{
                             fontSize: 11,
                             padding: '2px 8px',
                             borderRadius: 20,
-                            background: 'rgba(108, 92, 231, 0.1)',
+                            background: 'rgba(108, 92, 231, 0.08)',
                             color: 'var(--primary)',
                             fontWeight: 600,
                           }}>
@@ -280,7 +324,7 @@ export default function HistoryView({ onBack }) {
                     </span>
                   </div>
 
-                  {/* 展开内容：更多图片 + 操作 */}
+                  {/* 展开内容：更多图片 + 版本列表 + 操作 */}
                   {expanded && (
                     <div
                       className="fade-in"
@@ -289,6 +333,46 @@ export default function HistoryView({ onBack }) {
                         borderTop: '1px solid var(--border)',
                       }}
                     >
+                      {/* 版本历史 */}
+                      {versions.length > 1 && (
+                        <div style={{ marginTop: 12, marginBottom: 12 }}>
+                          <div style={{
+                            fontSize: 12, fontWeight: 600,
+                            color: 'var(--text-secondary)', marginBottom: 8,
+                          }}>
+                            版本历史 / Version History
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            {versions.map((v, i) => (
+                              <div key={i} style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                                fontSize: 11,
+                                padding: '6px 10px',
+                                borderRadius: 'var(--radius-sm)',
+                                background: i === versions.length - 1
+                                  ? 'rgba(0, 184, 148, 0.08)'
+                                  : 'var(--bg)',
+                              }}>
+                                <span style={{
+                                  fontWeight: 700,
+                                  color: i === versions.length - 1 ? 'var(--success)' : 'var(--text-secondary)',
+                                }}>
+                                  {v.label}
+                                </span>
+                                <span style={{ color: 'var(--text-light)' }}>
+                                  {v.sizeLabel || 'S (base)'}
+                                </span>
+                                <span style={{ color: 'var(--text-light)', marginLeft: 'auto' }}>
+                                  {formatDateTime(v.createdAt).date} {formatDateTime(v.createdAt).time}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       {/* 图片网格 */}
                       {images.length > 0 ? (
                         <div
@@ -327,8 +411,18 @@ export default function HistoryView({ onBack }) {
                       {/* 操作按钮 */}
                       <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
                         <button
-                          className="btn btn-secondary"
+                          className="btn btn-primary"
                           style={{ width: 'auto', flex: 1, fontSize: 13, padding: '10px 16px' }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleRestore(record)
+                          }}
+                        >
+                          📐 恢复纸样 / Restore Pattern
+                        </button>
+                        <button
+                          className="btn btn-secondary"
+                          style={{ width: 'auto', fontSize: 13, padding: '10px 16px' }}
                           onClick={(e) => {
                             e.stopPropagation()
                             handleDelete(record.id)

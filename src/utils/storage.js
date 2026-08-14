@@ -6,6 +6,7 @@
 const USER_KEY = 'patternai_user'
 const MEASUREMENTS_KEY = 'patternai_measurements'
 const HISTORY_KEY = 'patternai_history'
+const AVATAR_KEY = 'patternai_avatar'
 
 // 身材尺寸字段定义 / Body measurement field keys
 export const BODY_MEASUREMENT_FIELDS = [
@@ -135,6 +136,38 @@ export function logout() {
   safeSetItem(USER_KEY, JSON.stringify({ isLoggedIn: false, user: data.user }))
 }
 
+// ==================== 用户头像 / User Avatar ====================
+//
+// 头像存储为 base64 字符串（dataURL）或 null（使用默认剪刀头像）
+//
+
+/**
+ * 获取用户头像 dataURL
+ * Get user avatar as dataURL. Returns null if not set (use default scissors).
+ * @returns {string|null}
+ */
+export function getAvatar() {
+  return safeGetItem(AVATAR_KEY) || null
+}
+
+/**
+ * 保存用户头像
+ * Save user avatar (base64 dataURL).
+ * @param {string} dataUrl - base64 image data URL
+ * @returns {boolean}
+ */
+export function setAvatar(dataUrl) {
+  return safeSetItem(AVATAR_KEY, dataUrl)
+}
+
+/**
+ * 删除用户头像（恢复默认）
+ * Remove user avatar (revert to default scissors).
+ */
+export function removeAvatar() {
+  return safeRemoveItem(AVATAR_KEY)
+}
+
 // ==================== 身材尺寸数据 / Body Measurements ====================
 //
 // 存储结构 / Stored structure:
@@ -198,25 +231,99 @@ export function getHistoryRecords() {
 }
 
 /**
- * 新增一条历史记录（插入到头部）
- * Add a history record to the front of the list.
- * @param {object} record - { garmentName, garmentNameEn, thumbnail, images, sizeLabel }
- * @returns {object} the saved record (with id & timestamp)
+ * 新增一条历史记录（插入到头部），初始版本为 V1
+ * Add a history record to the front of the list with initial version V1.
+ * @param {object} record - { garmentName, garmentNameEn, thumbnail, images, sizeLabel, customSizes }
+ * @returns {object} the saved record (with id & timestamp & versions)
  */
 export function addHistoryRecord(record) {
   const list = getHistoryRecords()
+  const now = new Date().toISOString()
   const newRecord = {
     id: generateId(),
-    timestamp: new Date().toISOString(),
+    timestamp: now,
     garmentName: record?.garmentName ?? '未命名款式',
     garmentNameEn: record?.garmentNameEn ?? 'Untitled Garment',
     thumbnail: record?.thumbnail ?? '',
     images: Array.isArray(record?.images) ? record.images : [],
     sizeLabel: record?.sizeLabel ?? '',
+    customSizes: record?.customSizes ?? null,
+    versions: [{
+      version: 1,
+      label: 'V1',
+      sizeLabel: record?.sizeLabel ?? '',
+      customSizes: record?.customSizes ?? null,
+      createdAt: now,
+    }],
   }
   const next = [newRecord, ...list]
   safeSetItem(HISTORY_KEY, JSON.stringify(next))
   return newRecord
+}
+
+/**
+ * 根据 ID 获取单条历史记录
+ * Get a single history record by id.
+ * @param {string} id
+ * @returns {object|null}
+ */
+export function getHistoryRecord(id) {
+  const list = getHistoryRecords()
+  return list.find((item) => item.id === id) || null
+}
+
+/**
+ * 为指定历史记录新增一个版本（V2, V3, ...）
+ * Add a new version to an existing history record.
+ * @param {string} recordId
+ * @param {object} versionData - { sizeLabel, customSizes }
+ * @returns {object|null} updated record, or null if not found
+ */
+export function addVersionToRecord(recordId, versionData) {
+  const list = getHistoryRecords()
+  const idx = list.findIndex((item) => item.id === recordId)
+  if (idx === -1) return null
+
+  const record = list[idx]
+  const versions = Array.isArray(record.versions) ? record.versions : []
+  const nextVersionNum = versions.length + 1
+  const newVersion = {
+    version: nextVersionNum,
+    label: `V${nextVersionNum}`,
+    sizeLabel: versionData?.sizeLabel ?? '',
+    customSizes: versionData?.customSizes ?? null,
+    createdAt: new Date().toISOString(),
+  }
+  versions.push(newVersion)
+
+  // 更新记录的最新状态
+  record.versions = versions
+  record.sizeLabel = newVersion.sizeLabel
+  record.customSizes = newVersion.customSizes
+  record.timestamp = newVersion.createdAt
+
+  list[idx] = record
+  safeSetItem(HISTORY_KEY, JSON.stringify(list))
+  return record
+}
+
+/**
+ * 更新历史记录的当前尺寸状态（不新增版本，仅更新当前版本数据）
+ * Update the current size state of a history record (no new version).
+ * @param {string} recordId
+ * @param {object} data - { sizeLabel, customSizes }
+ * @returns {object|null} updated record
+ */
+export function updateHistoryRecord(recordId, data) {
+  const list = getHistoryRecords()
+  const idx = list.findIndex((item) => item.id === recordId)
+  if (idx === -1) return null
+
+  if (data?.sizeLabel !== undefined) list[idx].sizeLabel = data.sizeLabel
+  if (data?.customSizes !== undefined) list[idx].customSizes = data.customSizes
+
+  safeSetItem(HISTORY_KEY, JSON.stringify(list))
+  return list[idx]
 }
 
 /**

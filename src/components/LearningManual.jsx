@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react'
-import { learningManual, manualReferences } from '../data/learningManual.js'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { learningManual } from '../data/learningManual.js'
 
 // 语言模式
 const LANG = {
@@ -10,39 +10,106 @@ const LANG = {
 
 const LANG_LABEL = { zh: '中文', en: 'EN', bi: '双语' }
 
-// 仅注入一次响应式样式（窄屏将左侧目录变为顶部下拉列表）
+// localStorage 持久化阅读位置的 key
+const POSITION_KEY = 'patternai_manual_position'
+
+// 仅注入一次响应式样式（目录网格 + 详情页吸顶条 + 移动端 430px 适配）
 const STYLE_ID = 'learning-manual-responsive'
 if (typeof document !== 'undefined' && !document.getElementById(STYLE_ID)) {
   const styleEl = document.createElement('style')
   styleEl.id = STYLE_ID
   styleEl.textContent = `
-/* 默认（宽屏）：左侧目录 + 右侧内容 */
-.lm-mobile-toc { display: none; }
-.lm-sidebar { display: flex; }
-.lm-body { flex-direction: row; }
+/* 目录网格：默认单列，窄屏更紧凑 */
+.lm-toc-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+/* 目录章节卡片交互 */
+.lm-toc-card {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.lm-toc-card:active {
+  transform: scale(0.985);
+  box-shadow: 0 4px 20px rgba(108, 92, 231, 0.18);
+}
+/* 详情页顶部条吸顶 */
+.lm-detail-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+/* 小节切换条隐藏滚动条 */
+.lm-section-bar {
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.lm-section-bar::-webkit-scrollbar { display: none; }
 
-/* 窄屏：目录变为顶部下拉 */
-@media (max-width: 760px) {
-  .lm-mobile-toc { display: flex; }
-  .lm-sidebar { display: none; }
-  .lm-sidebar.lm-open { display: block; }
-  .lm-body { flex-direction: column; }
-  .lm-sidebar.lm-open {
-    position: relative;
-    width: 100%;
-    flex: none;
-    top: 0;
-  }
+/* 移动端适配（max-width: 430px） */
+@media (max-width: 430px) {
+  .lm-hero { padding: 16px 14px !important; }
+  .lm-toc-grid { gap: 10px; }
+  .lm-toc-card { padding: 12px 13px !important; }
+  .lm-detail-topbar { padding: 8px 12px !important; }
+  .lm-chapter-card { padding: 14px !important; }
+  .lm-section-content { padding: 14px !important; }
+  .lm-pager-btn { padding: 10px 0 !important; font-size: 12.5px !important; }
 }
 `
   document.head.appendChild(styleEl)
 }
 
+// 读取已保存的阅读位置（{ chapterId, sectionId }），无效时返回 null
+function loadPosition() {
+  try {
+    const raw = localStorage.getItem(POSITION_KEY)
+    if (!raw) return null
+    const data = JSON.parse(raw)
+    if (!data || !data.chapterId) return null
+    const ch = learningManual.chapters.find(c => c.id === data.chapterId)
+    if (!ch) return null
+    const sectionId = ch.sections.find(s => s.id === data.sectionId)
+      ? data.sectionId
+      : ch.sections[0].id
+    return { chapterId: ch.id, sectionId }
+  } catch {
+    return null
+  }
+}
+
+// 语言切换器
+function LangSwitch({ lang, setLang, compact }) {
+  return (
+    <div style={{ ...styles.langSwitch, ...(compact ? styles.langSwitchCompact : {}) }}>
+      {[LANG.ZH, LANG.EN, LANG.BI].map(l => (
+        <span
+          key={l}
+          style={{
+            ...styles.langBtn,
+            ...(lang === l ? styles.langBtnActive : {}),
+          }}
+          onClick={() => setLang(l)}
+        >
+          {LANG_LABEL[l]}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 export default function LearningManual() {
-  const [activeChapterId, setActiveChapterId] = useState(learningManual.chapters[0].id)
-  const [activeSectionId, setActiveSectionId] = useState(learningManual.chapters[0].sections[0].id)
+  // 首次渲染：尝试恢复上次阅读位置
+  const saved = useMemo(() => loadPosition(), [])
+  const [view, setView] = useState(saved ? 'detail' : 'toc') // 'toc' | 'detail'
+  const [activeChapterId, setActiveChapterId] = useState(
+    saved?.chapterId || learningManual.chapters[0].id
+  )
+  const [activeSectionId, setActiveSectionId] = useState(
+    saved?.sectionId || learningManual.chapters[0].sections[0].id
+  )
   const [lang, setLang] = useState(LANG.BI)
-  const [mobileListOpen, setMobileListOpen] = useState(false)
+  const topRef = useRef(null)
 
   const activeChapter = useMemo(
     () => learningManual.chapters.find(c => c.id === activeChapterId) || learningManual.chapters[0],
@@ -54,104 +121,164 @@ export default function LearningManual() {
     [activeChapter, activeSectionId]
   )
 
-  // 切换章节：同时重置 section 至首节
-  const handleSelectChapter = (chapterId) => {
-    const ch = learningManual.chapters.find(c => c.id === chapterId)
-    setActiveChapterId(chapterId)
-    setActiveSectionId(ch ? ch.sections[0].id : null)
-    setMobileListOpen(false)
-  }
+  // 当前章节在全书中的序号
+  const chapterIndex = learningManual.chapters.findIndex(c => c.id === activeChapterId)
+
+  // 持久化阅读位置：章节 / 小节变化时写入 localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        POSITION_KEY,
+        JSON.stringify({ chapterId: activeChapterId, sectionId: activeSectionId })
+      )
+    } catch {
+      /* 忽略写入失败（隐私模式等） */
+    }
+  }, [activeChapterId, activeSectionId])
+
+  // 视图或小节切换时，滚动回顶部（滚动容器为最近的 .page-content）
+  useEffect(() => {
+    const el = topRef.current
+    if (!el) return
+    const scroller = el.closest('.page-content') || el.parentElement
+    if (scroller && typeof scroller.scrollTo === 'function') {
+      scroller.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [view, activeChapterId, activeSectionId])
 
   // 是否显示中文 / 英文
   const showZh = lang === LANG.ZH || lang === LANG.BI
   const showEn = lang === LANG.EN || lang === LANG.BI
 
+  // 从目录点击某章节卡片 -> 进入该章节（首节）
+  const handleOpenChapter = (chapterId) => {
+    const ch = learningManual.chapters.find(c => c.id === chapterId)
+    if (!ch) return
+    setActiveChapterId(chapterId)
+    setActiveSectionId(ch.sections[0].id)
+    setView('detail')
+  }
+
+  // 返回目录
+  const handleBackToToc = () => setView('toc')
+
+  // 全书范围内的扁平小节序列，用于跨章节翻页
+  const flatSections = useMemo(() => {
+    const arr = []
+    learningManual.chapters.forEach(ch => {
+      ch.sections.forEach(sec => arr.push({ chapterId: ch.id, sectionId: sec.id }))
+    })
+    return arr
+  }, [])
+
+  const currentFlatIdx = flatSections.findIndex(
+    f => f.chapterId === activeChapterId && f.sectionId === activeSectionId
+  )
+  const hasPrev = currentFlatIdx > 0
+  const hasNext = currentFlatIdx >= 0 && currentFlatIdx < flatSections.length - 1
+
+  const handlePrev = () => {
+    if (!hasPrev) return
+    const prev = flatSections[currentFlatIdx - 1]
+    setActiveChapterId(prev.chapterId)
+    setActiveSectionId(prev.sectionId)
+  }
+
+  const handleNext = () => {
+    if (!hasNext) return
+    const next = flatSections[currentFlatIdx + 1]
+    setActiveChapterId(next.chapterId)
+    setActiveSectionId(next.sectionId)
+  }
+
   return (
-    <div className="fade-in" style={styles.wrapper}>
-      {/* 顶部标题区 */}
-      <div style={styles.hero}>
-        <div style={styles.heroIcon}>📚</div>
-        <h2 style={styles.heroTitle}>
-          {showZh && learningManual.title}
-          {showEn && (showZh ? <span style={styles.heroTitleEn}> / {learningManual.titleEn}</span> : learningManual.titleEn)}
-        </h2>
-        <p style={styles.heroSub}>
-          {showZh && learningManual.subtitle}
-          {showEn && (showZh ? <br /> : '')}
-          {showEn && learningManual.subtitleEn}
-        </p>
+    <div className="fade-in" style={styles.wrapper} ref={topRef}>
+      {view === 'toc' ? (
+        /* ==================== 目录页 ==================== */
+        <>
+          {/* 顶部标题区 */}
+          <div className="lm-hero" style={styles.hero}>
+            <div style={styles.heroIcon}>📚</div>
+            <h2 style={styles.heroTitle}>
+              {showZh && learningManual.title}
+              {showEn && (showZh
+                ? <span style={styles.heroTitleEn}> / {learningManual.titleEn}</span>
+                : learningManual.titleEn)}
+            </h2>
+            <p style={styles.heroSub}>
+              {showZh && learningManual.subtitle}
+              {showEn && (showZh ? <br /> : '')}
+              {showEn && learningManual.subtitleEn}
+            </p>
 
-        {/* 语言切换 */}
-        <div style={styles.langSwitch}>
-          {[LANG.ZH, LANG.EN, LANG.BI].map(l => (
-            <span
-              key={l}
-              style={{
-                ...styles.langBtn,
-                ...(lang === l ? styles.langBtnActive : {}),
-              }}
-              onClick={() => setLang(l)}
-            >
-              {LANG_LABEL[l]}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* 移动端目录触发条（窄屏显示，宽屏隐藏由 CSS 控制） */}
-      <div
-        className="lm-mobile-toc"
-        style={styles.mobileTocBar}
-        onClick={() => setMobileListOpen(o => !o)}
-      >
-        <span style={styles.mobileTocIcon}>{activeChapter.icon}</span>
-        <span style={styles.mobileTocText}>
-          {showZh ? activeChapter.title : activeChapter.titleEn}
-        </span>
-        <span style={{ ...styles.mobileTocArrow, transform: mobileListOpen ? 'rotate(180deg)' : 'none' }}>▾</span>
-      </div>
-
-      <div className="lm-body" style={styles.body}>
-        {/* 左侧目录（桌面侧边栏 / 移动端下拉列表，显示由 CSS 控制） */}
-        <aside
-          className={`lm-sidebar ${mobileListOpen ? 'lm-open' : ''}`}
-          style={styles.sidebar}
-        >
-          <div style={styles.sidebarHeader}>
-            {showZh ? '章节目录' : 'Contents'}
-            {showEn && showZh && <span style={styles.sidebarHeaderEn}> / Contents</span>}
+            <LangSwitch lang={lang} setLang={setLang} />
           </div>
-          <ol style={styles.chapterList}>
-            {learningManual.chapters.map((ch, i) => (
-              <li
-                key={ch.id}
-                style={{
-                  ...styles.chapterItem,
-                  ...(ch.id === activeChapterId ? styles.chapterItemActive : {}),
-                }}
-                onClick={() => handleSelectChapter(ch.id)}
-              >
-                <span style={styles.chapterIcon}>{ch.icon}</span>
-                <span style={styles.chapterText}>
-                  <span style={styles.chapterIdx}>{i + 1}. </span>
-                  {showZh && ch.title}
-                  {showEn && (showZh ? <span style={styles.chapterTitleEn}> {ch.titleEn}</span> : ch.titleEn)}
-                </span>
-              </li>
-            ))}
-          </ol>
-        </aside>
 
-        {/* 右侧内容区 */}
-        <section style={styles.content}>
+          {/* 目录章节卡片列表 */}
+          <div className="lm-toc-grid" style={styles.tocGrid}>
+            {learningManual.chapters.map((ch, i) => (
+              <div
+                key={ch.id}
+                className="lm-toc-card"
+                style={styles.tocCard}
+                onClick={() => handleOpenChapter(ch.id)}
+              >
+                <div style={styles.tocCardIcon}>{ch.icon}</div>
+                <div style={styles.tocCardBody}>
+                  <div style={styles.tocCardNum}>
+                    {showZh && `第 ${i + 1} 章`}
+                    {showEn && (showZh
+                      ? <span style={styles.tocCardNumEn}> · Chapter {i + 1}</span>
+                      : `Chapter ${i + 1}`)}
+                  </div>
+                  <div style={styles.tocCardTitle}>
+                    {showZh && ch.title}
+                    {showEn && (showZh
+                      ? <span style={styles.tocCardTitleEn}> · {ch.titleEn}</span>
+                      : ch.titleEn)}
+                  </div>
+                  <div style={styles.tocCardDesc}>
+                    {showZh && ch.description}
+                    {showEn && (showZh
+                      ? <span style={styles.tocCardDescEn}>{ch.descriptionEn}</span>
+                      : ch.descriptionEn)}
+                  </div>
+                </div>
+                <div style={styles.tocCardArrow}>›</div>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
+        /* ==================== 章节内容页 ==================== */
+        <>
+          {/* 顶部条：返回目录 + 语言切换 */}
+          <div className="lm-detail-topbar" style={styles.detailTopBar}>
+            <span style={styles.backBtn} onClick={handleBackToToc}>
+              <span style={styles.backArrow}>‹</span>
+              {showZh ? '返回目录' : 'Contents'}
+              {showEn && showZh && <span style={styles.backBtnEn}> / Contents</span>}
+            </span>
+            <LangSwitch lang={lang} setLang={setLang} compact />
+          </div>
+
           {/* 章节标题卡 */}
-          <div style={styles.chapterCard}>
+          <div className="lm-chapter-card" style={styles.chapterCard}>
             <div style={styles.chapterCardHead}>
               <span style={styles.chapterCardIcon}>{activeChapter.icon}</span>
-              <div>
+              <div style={styles.chapterCardInfo}>
+                <div style={styles.chapterCardBadge}>
+                  {showZh && `第 ${chapterIndex + 1} 章`}
+                  {showEn && (showZh
+                    ? <span style={styles.badgeEn}> · Chapter {chapterIndex + 1}</span>
+                    : `Chapter ${chapterIndex + 1}`)}
+                  <span style={styles.badgeTotal}> / {learningManual.chapters.length}</span>
+                </div>
                 <h3 style={styles.chapterCardTitle}>
                   {showZh && activeChapter.title}
-                  {showEn && (showZh ? <span style={styles.titleEnInline}> / {activeChapter.titleEn}</span> : activeChapter.titleEn)}
+                  {showEn && (showZh
+                    ? <span style={styles.titleEnInline}> / {activeChapter.titleEn}</span>
+                    : activeChapter.titleEn)}
                 </h3>
                 <p style={styles.chapterCardDesc}>
                   {showZh && activeChapter.description}
@@ -163,7 +290,7 @@ export default function LearningManual() {
           </div>
 
           {/* 当前章节的 section 切换条 */}
-          <div style={styles.sectionBar}>
+          <div className="lm-section-bar" style={styles.sectionBar}>
             {activeChapter.sections.map(sec => (
               <span
                 key={sec.id}
@@ -179,17 +306,25 @@ export default function LearningManual() {
           </div>
 
           {/* Section 详细内容 */}
-          <div key={activeSection.id} className="slide-up" style={styles.sectionContent}>
+          <div
+            key={activeSection.id}
+            className="slide-up lm-section-content"
+            style={styles.sectionContent}
+          >
             <h4 style={styles.sectionTitle}>
               {showZh && activeSection.title}
-              {showEn && (showZh ? <span style={styles.titleEnInline}> / {activeSection.titleEn}</span> : activeSection.titleEn)}
+              {showEn && (showZh
+                ? <span style={styles.titleEnInline}> / {activeSection.titleEn}</span>
+                : activeSection.titleEn)}
             </h4>
 
             {showZh && (
               <p style={styles.sectionText}>{activeSection.content}</p>
             )}
             {showEn && (
-              <p style={showZh ? styles.sectionTextEn : styles.sectionText}>{activeSection.contentEn}</p>
+              <p style={showZh ? styles.sectionTextEn : styles.sectionText}>
+                {activeSection.contentEn}
+              </p>
             )}
 
             {/* 技巧提示 */}
@@ -223,69 +358,38 @@ export default function LearningManual() {
             )}
           </div>
 
-          {/* 翻页：上一节 / 下一节 */}
+          {/* 翻页：上一节 / 下一节（跨章节连续阅读） */}
           <div style={styles.pager}>
-            {getPrevSection(activeChapter, activeSectionId) ? (
-              <span style={styles.pagerBtn} onClick={() => {
-                const p = getPrevSection(activeChapter, activeSectionId)
-                if (p) setActiveSectionId(p.id)
-              }}>
+            {hasPrev ? (
+              <span className="lm-pager-btn" style={styles.pagerBtn} onClick={handlePrev}>
                 ‹ {showZh ? '上一节' : 'Prev'}
               </span>
-            ) : <span style={styles.pagerBtnDisabled}>‹ {showZh ? '上一节' : 'Prev'}</span>}
-            {getNextSection(activeChapter, activeSectionId) ? (
-              <span style={{ ...styles.pagerBtn, ...styles.pagerBtnRight }} onClick={() => {
-                const n = getNextSection(activeChapter, activeSectionId)
-                if (n) setActiveSectionId(n.id)
-              }}>
+            ) : (
+              <span className="lm-pager-btn" style={styles.pagerBtnDisabled}>
+                ‹ {showZh ? '上一节' : 'Prev'}
+              </span>
+            )}
+            {hasNext ? (
+              <span
+                className="lm-pager-btn"
+                style={{ ...styles.pagerBtn, ...styles.pagerBtnRight }}
+                onClick={handleNext}
+              >
                 {showZh ? '下一节' : 'Next'} ›
               </span>
-            ) : <span style={{ ...styles.pagerBtnDisabled, ...styles.pagerBtnRight }}>{showZh ? '下一节' : 'Next'} ›</span>}
+            ) : (
+              <span
+                className="lm-pager-btn"
+                style={{ ...styles.pagerBtnDisabled, ...styles.pagerBtnRight }}
+              >
+                {showZh ? '下一节' : 'Next'} ›
+              </span>
+            )}
           </div>
-        </section>
-      </div>
-
-      {/* 参考书目 */}
-      <div style={styles.refCard}>
-        <div style={styles.refHeader}>
-          📖 {showZh ? '参考书目' : 'References'}
-          {showEn && showZh && <span style={styles.tipsHeaderEn}> / References</span>}
-        </div>
-        {manualReferences.map((ref, i) => (
-          <div key={i} style={styles.refItem}>
-            <div style={styles.refTitle}>
-              《{ref.title}》
-              <span style={styles.refTitleEn}> / {ref.titleEn}</span>
-            </div>
-            <div style={styles.refAuthor}>
-              {showZh ? `著者：${ref.author}` : `Author: ${ref.authorEn}`}
-              {showEn && showZh && <span style={styles.refTitleEn}> / {ref.authorEn}</span>}
-            </div>
-            <div style={styles.refPublisher}>
-              {showZh ? ref.publisher : ref.publisherEn}
-            </div>
-            <ul style={styles.refParts}>
-              {ref.parts.map((p, j) => (
-                <li key={j} style={styles.refPart}>{p}</li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </div>
+        </>
+      )}
     </div>
   )
-}
-
-// 辅助：获取当前章节内上一节
-function getPrevSection(chapter, sectionId) {
-  const idx = chapter.sections.findIndex(s => s.id === sectionId)
-  return idx > 0 ? chapter.sections[idx - 1] : null
-}
-
-// 辅助：获取当前章节内下一节
-function getNextSection(chapter, sectionId) {
-  const idx = chapter.sections.findIndex(s => s.id === sectionId)
-  return idx >= 0 && idx < chapter.sections.length - 1 ? chapter.sections[idx + 1] : null
 }
 
 // ==================== 内联样式 ====================
@@ -293,8 +397,11 @@ const styles = {
   wrapper: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '12px',
+    gap: 12,
+    paddingBottom: 8,
   },
+
+  // ---------- 顶部标题区（目录页） ----------
   hero: {
     margin: '0 16px',
     padding: '20px 18px',
@@ -324,6 +431,8 @@ const styles = {
     lineHeight: 1.6,
     marginTop: 4,
   },
+
+  // ---------- 语言切换 ----------
   langSwitch: {
     display: 'inline-flex',
     marginTop: 12,
@@ -331,6 +440,10 @@ const styles = {
     borderRadius: 20,
     padding: 3,
     boxShadow: 'var(--shadow)',
+  },
+  langSwitchCompact: {
+    marginTop: 0,
+    padding: 2,
   },
   langBtn: {
     fontSize: 12,
@@ -346,112 +459,118 @@ const styles = {
     color: '#fff',
   },
 
-  // 移动端目录触发条（display 由 CSS 控制）
-  mobileTocBar: {
+  // ---------- 目录章节卡片 ----------
+  tocGrid: {
     margin: '0 16px',
-    padding: '12px 16px',
-    background: 'var(--card-bg)',
-    borderRadius: 'var(--radius-sm)',
-    boxShadow: 'var(--shadow)',
-    alignItems: 'center',
-    gap: 10,
-    cursor: 'pointer',
   },
-  mobileTocIcon: {
-    fontSize: 20,
-  },
-  mobileTocText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: 700,
-    color: 'var(--text)',
-  },
-  mobileTocArrow: {
-    fontSize: 14,
-    color: 'var(--text-light)',
-    transition: 'transform 0.2s',
-  },
-
-  body: {
+  tocCard: {
     display: 'flex',
+    alignItems: 'center',
     gap: 12,
-    margin: '0 16px',
-    alignItems: 'flex-start',
-  },
-  sidebar: {
-    flex: '0 0 220px',
+    padding: '14px 16px',
     background: 'var(--card-bg)',
     borderRadius: 'var(--radius)',
     boxShadow: 'var(--shadow)',
-    padding: '14px 12px',
-    position: 'sticky',
-    top: 12,
-    flexDirection: 'column',
+    border: '1px solid transparent',
+    cursor: 'pointer',
   },
-  sidebarHeader: {
-    fontSize: 12,
-    fontWeight: 700,
-    color: 'var(--text-light)',
-    letterSpacing: 1,
-    padding: '0 6px 10px',
-    borderBottom: '1px solid var(--border)',
-    marginBottom: 8,
-  },
-  sidebarHeaderEn: {
-    fontWeight: 400,
-    color: 'var(--text-light)',
-  },
-  chapterList: {
-    listStyle: 'none',
-    margin: 0,
-    padding: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 2,
-  },
-  chapterItem: {
+  tocCardIcon: {
+    fontSize: 26,
+    flexShrink: 0,
+    width: 46,
+    height: 46,
+    borderRadius: 13,
+    background: 'linear-gradient(135deg, rgba(108, 92, 231, 0.12), rgba(0, 206, 201, 0.08))',
     display: 'flex',
     alignItems: 'center',
-    gap: 8,
-    padding: '9px 10px',
-    borderRadius: 'var(--radius-sm)',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-    border: '1px solid transparent',
+    justifyContent: 'center',
   },
-  chapterItemActive: {
-    background: 'linear-gradient(135deg, rgba(108, 92, 231, 0.10), rgba(108, 92, 231, 0.04))',
-    border: '1px solid rgba(108, 92, 231, 0.25)',
-  },
-  chapterIcon: {
-    fontSize: 18,
-    flexShrink: 0,
-  },
-  chapterText: {
-    fontSize: 13,
-    fontWeight: 600,
-    color: 'var(--text)',
-    lineHeight: 1.35,
-  },
-  chapterIdx: {
-    color: 'var(--primary)',
-    fontWeight: 800,
-  },
-  chapterTitleEn: {
-    display: 'block',
-    fontSize: 10,
-    color: 'var(--text-light)',
-    fontWeight: 400,
-  },
-
-  content: {
+  tocCardBody: {
     flex: 1,
     minWidth: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 12,
   },
+  tocCardNum: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: 'var(--primary)',
+    letterSpacing: 0.5,
+    marginBottom: 3,
+  },
+  tocCardNumEn: {
+    fontWeight: 400,
+    color: 'var(--text-light)',
+  },
+  tocCardTitle: {
+    fontSize: 15,
+    fontWeight: 800,
+    color: 'var(--text)',
+    lineHeight: 1.35,
+    marginBottom: 3,
+  },
+  tocCardTitleEn: {
+    fontSize: 12,
+    fontWeight: 400,
+    color: 'var(--text-light)',
+  },
+  tocCardDesc: {
+    fontSize: 12,
+    color: 'var(--text-secondary)',
+    lineHeight: 1.55,
+  },
+  tocCardDescEn: {
+    display: 'block',
+    fontSize: 11,
+    color: 'var(--text-light)',
+    fontStyle: 'italic',
+    marginTop: 2,
+  },
+  tocCardArrow: {
+    flexShrink: 0,
+    fontSize: 22,
+    fontWeight: 300,
+    color: 'var(--text-light)',
+    lineHeight: 1,
+  },
+
+  // ---------- 详情页顶部条 ----------
+  detailTopBar: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    margin: '0 16px',
+    padding: '10px 14px',
+    background: 'var(--card-bg)',
+    borderRadius: 'var(--radius-sm)',
+    boxShadow: 'var(--shadow)',
+  },
+  backBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 4,
+    fontSize: 13,
+    fontWeight: 700,
+    color: 'var(--primary)',
+    cursor: 'pointer',
+    padding: '4px 6px',
+    borderRadius: 8,
+    transition: 'background 0.2s',
+  },
+  backArrow: {
+    fontSize: 18,
+    fontWeight: 400,
+    lineHeight: 1,
+    marginTop: -1,
+  },
+  backBtnEn: {
+    fontSize: 11,
+    fontWeight: 400,
+    color: 'var(--text-light)',
+  },
+
+  // ---------- 章节标题卡 ----------
   chapterCard: {
+    margin: '0 16px',
     background: 'var(--card-bg)',
     borderRadius: 'var(--radius)',
     boxShadow: 'var(--shadow)',
@@ -463,15 +582,37 @@ const styles = {
     alignItems: 'flex-start',
   },
   chapterCardIcon: {
-    fontSize: 28,
+    fontSize: 26,
     flexShrink: 0,
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: 46,
+    height: 46,
+    borderRadius: 13,
     background: 'linear-gradient(135deg, rgba(108, 92, 231, 0.12), rgba(0, 206, 201, 0.08))',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  chapterCardInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  chapterCardBadge: {
+    display: 'inline-block',
+    fontSize: 11,
+    fontWeight: 700,
+    color: 'var(--primary)',
+    background: 'rgba(108, 92, 231, 0.10)',
+    padding: '2px 9px',
+    borderRadius: 20,
+    marginBottom: 6,
+  },
+  badgeEn: {
+    fontWeight: 400,
+    color: 'var(--text-light)',
+  },
+  badgeTotal: {
+    color: 'var(--text-light)',
+    fontWeight: 400,
   },
   chapterCardTitle: {
     fontSize: 16,
@@ -491,16 +632,16 @@ const styles = {
     lineHeight: 1.6,
   },
 
+  // ---------- section 切换条 ----------
   sectionBar: {
     display: 'flex',
     gap: 0,
     overflowX: 'auto',
+    margin: '0 16px',
     background: 'var(--card-bg)',
     borderRadius: 'var(--radius-sm)',
     boxShadow: 'var(--shadow)',
-    padding: '4px 4px',
-    WebkitOverflowScrolling: 'touch',
-    scrollbarWidth: 'none',
+    padding: '4px',
   },
   sectionTab: {
     padding: '8px 14px',
@@ -517,7 +658,9 @@ const styles = {
     color: '#fff',
   },
 
+  // ---------- section 内容 ----------
   sectionContent: {
+    margin: '0 16px',
     background: 'var(--card-bg)',
     borderRadius: 'var(--radius)',
     boxShadow: 'var(--shadow)',
@@ -547,8 +690,10 @@ const styles = {
     paddingTop: 10,
     borderTop: '1px dashed var(--border)',
     fontStyle: 'italic',
+    textAlign: 'justify',
   },
 
+  // ---------- 技巧提示 ----------
   tipsBox: {
     marginTop: 16,
   },
@@ -571,10 +716,12 @@ const styles = {
     marginBottom: 8,
   },
 
+  // ---------- 翻页 ----------
   pager: {
     display: 'flex',
     justifyContent: 'space-between',
     gap: 10,
+    margin: '0 16px 8px',
   },
   pagerBtn: {
     flex: 1,
@@ -604,56 +751,5 @@ const styles = {
     boxShadow: 'var(--shadow)',
     opacity: 0.5,
     cursor: 'not-allowed',
-  },
-
-  refCard: {
-    margin: '0 16px 20px',
-    background: 'var(--card-bg)',
-    borderRadius: 'var(--radius)',
-    boxShadow: 'var(--shadow)',
-    padding: 16,
-  },
-  refHeader: {
-    fontSize: 14,
-    fontWeight: 700,
-    color: 'var(--text)',
-    marginBottom: 12,
-    paddingBottom: 10,
-    borderBottom: '1px solid var(--border)',
-  },
-  refItem: {
-    padding: '10px 0',
-    borderBottom: '1px dashed var(--border)',
-  },
-  refTitle: {
-    fontSize: 13,
-    fontWeight: 700,
-    color: 'var(--primary)',
-    marginBottom: 4,
-  },
-  refTitleEn: {
-    fontSize: 11,
-    fontWeight: 400,
-    color: 'var(--text-light)',
-  },
-  refAuthor: {
-    fontSize: 12,
-    color: 'var(--text-secondary)',
-    marginBottom: 2,
-  },
-  refPublisher: {
-    fontSize: 11,
-    color: 'var(--text-light)',
-    marginBottom: 6,
-  },
-  refParts: {
-    margin: 0,
-    paddingLeft: 18,
-    color: 'var(--text-secondary)',
-  },
-  refPart: {
-    fontSize: 11.5,
-    lineHeight: 1.7,
-    color: 'var(--text-secondary)',
   },
 }

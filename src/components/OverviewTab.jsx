@@ -94,7 +94,7 @@ export default function OverviewTab({ onExportPDF }) {
 
       {/* 操作按钮 */}
       <div style={{ padding: '0 16px 20px' }}>
-        <button className="btn btn-primary" onClick={onExportPDF}>📄 生成完整纸样 PDF（S 码基准）</button>
+        <button className="btn btn-primary" onClick={onExportPDF}>📄 生成中英双语纸样（S 码基准）</button>
         <div style={{ height: 10 }} />
         <button className="btn btn-secondary">🖨️ 连接打印机打印图纸</button>
       </div>

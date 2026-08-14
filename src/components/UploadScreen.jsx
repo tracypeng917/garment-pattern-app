@@ -98,14 +98,14 @@ export default function UploadScreen({ onUpload }) {
           <div className="upload-feature">
             <div className="upload-feature-icon" style={{ background: 'rgba(0,206,201,0.1)' }}>📚</div>
             <div className="upload-feature-text">
-              <h4>新手教程</h4>
+              <h4>学习手册</h4>
               <p>图解纸样符号、缝制步骤，小白也能做</p>
             </div>
           </div>
           <div className="upload-feature">
             <div className="upload-feature-icon" style={{ background: 'rgba(253,203,110,0.15)' }}>📄</div>
             <div className="upload-feature-text">
-              <h4>中英双语 PDF</h4>
+              <h4>中英双语纸样</h4>
               <p>纸样标注中英双语，支持自定义尺寸导出</p>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { garmentInfo, patternPieces } from '../data/mockData.js'
-import { generatePatternPDF } from '../utils/pdfExport.js'
+import ExportModal from './ExportModal.jsx'
 import OverviewTab from './OverviewTab.jsx'
 import PatternView from './PatternView.jsx'
 import MeasurementsTab from './MeasurementsTab.jsx'
@@ -10,9 +10,23 @@ import SewingTab from './SewingTab.jsx'
 import CustomSizeTab from './CustomSizeTab.jsx'
 import TutorialTab from './TutorialTab.jsx'
 
-export default function ResultScreen({ images, onReset, userPurpose }) {
+export default function ResultScreen({
+  images,
+  onReset,
+  userPurpose,
+  recordId,
+  currentVersion = 1,
+  customSizes: initialCustomSizes = null,
+  sizeLabel: initialSizeLabel = 'S (base)',
+  onRegenerate,
+}) {
   const [activeTab, setActiveTab] = useState('overview')
   const [thumbIndex, setThumbIndex] = useState(0)
+  const [exportModalVisible, setExportModalVisible] = useState(false)
+  const [version, setVersion] = useState(currentVersion)
+  const [customSizes, setCustomSizes] = useState(initialCustomSizes)
+  const [sizeLabel, setSizeLabel] = useState(initialSizeLabel)
+  const [regenFlash, setRegenFlash] = useState(false)
 
   // 根据用户用途决定显示哪些标签
   const isCommercial = userPurpose === 'commercial'
@@ -26,7 +40,7 @@ export default function ResultScreen({ images, onReset, userPurpose }) {
         { id: 'custom', label: '自定义', icon: '🎯' },
         { id: 'material', label: '用料', icon: '🧵' },
         { id: 'sewing', label: '工序', icon: '✂️' },
-        { id: 'tutorial', label: '教程', icon: '📚' },
+        { id: 'tutorial', label: '学习手册', icon: '📚' },
       ]
     : [
         { id: 'overview', label: '概览', icon: '📋' },
@@ -35,11 +49,25 @@ export default function ResultScreen({ images, onReset, userPurpose }) {
         { id: 'custom', label: '我的尺寸', icon: '🎯' },
         { id: 'material', label: '用料', icon: '🧵' },
         { id: 'sewing', label: '工序', icon: '✂️' },
-        { id: 'tutorial', label: '教程', icon: '📚' },
+        { id: 'tutorial', label: '学习手册', icon: '📚' },
       ]
 
-  const handleExportPDF = () => {
-    generatePatternPDF({ sizeLabel: 'S (base)', customSizes: null })
+  const handleOpenExport = () => {
+    setExportModalVisible(true)
+  }
+
+  // 修改尺寸后重新生成纸样
+  const handleRegeneratePattern = (newCustomSizes, newSizeLabel) => {
+    if (onRegenerate) {
+      onRegenerate(newCustomSizes, newSizeLabel)
+    }
+    setCustomSizes(newCustomSizes)
+    setSizeLabel(newSizeLabel || '自定义 / Custom')
+    setVersion(v => v + 1)
+    setRegenFlash(true)
+    setTimeout(() => setRegenFlash(false), 2000)
+    // 自动切换到纸样图纸页查看新版本
+    setActiveTab('pattern')
   }
 
   return (
@@ -47,10 +75,46 @@ export default function ResultScreen({ images, onReset, userPurpose }) {
       <div className="top-bar">
         <div className="top-bar-back" onClick={onReset}>‹</div>
         <div className="top-bar-title">识别结果</div>
-        <div className="top-bar-action" onClick={handleExportPDF}>导出 PDF</div>
+        <div className="top-bar-action" onClick={handleOpenExport}>导出纸样</div>
       </div>
 
       <div className="page-content">
+        {/* Version Badge */}
+        {version > 0 && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '8px 16px 4px',
+          }}>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 12,
+              fontWeight: 700,
+              padding: '4px 12px',
+              borderRadius: 20,
+              background: regenFlash
+                ? 'rgba(0, 184, 148, 0.15)'
+                : 'rgba(108, 92, 231, 0.1)',
+              color: regenFlash ? 'var(--success)' : 'var(--primary)',
+              transition: 'all 0.3s',
+            }}>
+              {regenFlash ? '✓ ' : '📐 '}V{version}
+              {customSizes && <span style={{ fontWeight: 400, marginLeft: 4 }}>· 自定义尺寸</span>}
+            </span>
+            {sizeLabel && (
+              <span style={{
+                fontSize: 11,
+                color: 'var(--text-light)',
+              }}>
+                {sizeLabel}
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Result Header */}
         <div className="result-header slide-up">
           <div className="result-header-top">
@@ -93,8 +157,8 @@ export default function ResultScreen({ images, onReset, userPurpose }) {
               <div className="result-stat-label">置信度 / Conf.</div>
             </div>
             <div className="result-stat">
-              <div className="result-stat-value">{images?.length || 0}</div>
-              <div className="result-stat-label">图片 / Photos</div>
+              <div className="result-stat-value">{version}</div>
+              <div className="result-stat-label">版本 / Ver.</div>
             </div>
           </div>
         </div>
@@ -125,12 +189,18 @@ export default function ResultScreen({ images, onReset, userPurpose }) {
         </div>
 
         {/* Tab Content */}
-        <div className="fade-in" key={activeTab}>
-          {activeTab === 'overview' && <OverviewTab onExportPDF={handleExportPDF} />}
-          {activeTab === 'pattern' && <PatternView />}
-          {activeTab === 'measure' && <MeasurementsTab />}
+        <div className="fade-in" key={`${activeTab}-${version}`}>
+          {activeTab === 'overview' && <OverviewTab onExportPDF={handleOpenExport} />}
+          {activeTab === 'pattern' && <PatternView customSizes={customSizes} sizeLabel={sizeLabel} version={version} />}
+          {activeTab === 'measure' && <MeasurementsTab customSizes={customSizes} />}
           {isCommercial && activeTab === 'grading' && <GradingTab />}
-          {activeTab === 'custom' && <CustomSizeTab />}
+          {activeTab === 'custom' && (
+            <CustomSizeTab
+              onRegenerate={handleRegeneratePattern}
+              currentCustomSizes={customSizes}
+              version={version}
+            />
+          )}
           {activeTab === 'material' && <MaterialTab />}
           {activeTab === 'sewing' && <SewingTab />}
           {activeTab === 'tutorial' && <TutorialTab />}
@@ -149,7 +219,7 @@ export default function ResultScreen({ images, onReset, userPurpose }) {
         </div>
         <div className={`nav-item ${activeTab === 'tutorial' ? 'active' : ''}`} onClick={() => setActiveTab('tutorial')}>
           <span className="nav-item-icon">📚</span>
-          <span className="nav-item-label">教程</span>
+          <span className="nav-item-label">学习手册</span>
         </div>
         <div className={`nav-item ${activeTab === 'custom' ? 'active' : ''}`} onClick={() => setActiveTab('custom')}>
           <span className="nav-item-icon">🎯</span>
@@ -160,6 +230,14 @@ export default function ResultScreen({ images, onReset, userPurpose }) {
           <span className="nav-item-label">用料</span>
         </div>
       </div>
+
+      {/* Export Modal */}
+      <ExportModal
+        visible={exportModalVisible}
+        onClose={() => setExportModalVisible(false)}
+        customSizes={customSizes}
+        sizeLabel={sizeLabel}
+      />
     </>
   )
 }

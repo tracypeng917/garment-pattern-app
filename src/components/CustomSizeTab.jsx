@@ -3,7 +3,7 @@ import { bodyMeasurements, sizeMeasurements, recommendSize, calculateCustomGarme
 import { generatePatternPDF } from '../utils/pdfExport.js'
 import { getBodyMeasurements, saveBodyMeasurements } from '../utils/storage.js'
 
-export default function CustomSizeTab() {
+export default function CustomSizeTab({ onRegenerate, currentCustomSizes, version = 1 }) {
   // 从 localStorage 加载已保存的身材数据
   const savedBody = getBodyMeasurements()
 
@@ -24,6 +24,19 @@ export default function CustomSizeTab() {
   // 是否已计算
   const [calculated, setCalculated] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [regenerating, setRegenerating] = useState(false)
+
+  // 如果从历史记录恢复且有自定义尺寸，自动填充
+  useEffect(() => {
+    if (currentCustomSizes) {
+      const adjust = {}
+      Object.entries(currentCustomSizes).forEach(([k, v]) => {
+        adjust[k] = v
+      })
+      setManualAdjust(adjust)
+      setCalculated(true)
+    }
+  }, [currentCustomSizes])
 
   const handleChange = (name, value) => {
     setUserBody(prev => ({ ...prev, [name]: value === '' ? '' : parseFloat(value) }))
@@ -72,13 +85,17 @@ export default function CustomSizeTab() {
 
   // 合并自动计算和手动微调
   const finalSizes = useMemo(() => {
+    if (currentCustomSizes && Object.keys(manualAdjust).length > 0) {
+      // 从历史记录恢复的情况，直接使用 manualAdjust
+      return { ...currentCustomSizes, ...manualAdjust }
+    }
     if (!result) return null
     const merged = { ...result.customSizes }
     Object.entries(manualAdjust).forEach(([k, v]) => {
       if (v !== '' && v != null) merged[k] = parseFloat(v)
     })
     return merged
-  }, [result, manualAdjust])
+  }, [result, manualAdjust, currentCustomSizes])
 
   const handleManualChange = (name, value) => {
     setManualAdjust(prev => ({ ...prev, [name]: value }))
@@ -91,18 +108,56 @@ export default function CustomSizeTab() {
     })
   }
 
+  // 重新生成纸样（版本递增）
+  const handleRegenerate = () => {
+    if (!finalSizes) {
+      alert('请先输入身材数据并计算尺寸')
+      return
+    }
+    setRegenerating(true)
+    setTimeout(() => {
+      const sizeLabel = `Custom V${version + 1}`
+      if (onRegenerate) {
+        onRegenerate(finalSizes, sizeLabel)
+      }
+      setRegenerating(false)
+    }, 800) // 模拟生成过程
+  }
+
   const inputFields = bodyMeasurements.rows
 
   return (
     <div className="fade-in">
+      {/* 版本提示 */}
+      {version > 1 && (
+        <div className="card" style={{
+          background: 'rgba(0, 184, 148, 0.05)',
+          borderColor: 'rgba(0, 184, 148, 0.2)',
+        }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8, fontSize: 13,
+          }}>
+            <span style={{ fontSize: 20 }}>📐</span>
+            <div>
+              <div style={{ fontWeight: 700, color: 'var(--success)' }}>
+                当前版本 V{version}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                修改尺寸后点击「重新生成」将创建 V{version + 1} 版本
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 说明 */}
       <div className="card">
         <div className="card-title">
           <span className="card-title-icon">🎯</span>
-          自定义尺寸调整
+          自定义尺寸调整 / Custom Size
         </div>
         <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-          输入您的身材净尺寸数据，系统将自动推荐最接近的码号并计算成衣尺寸。您还可以手动微调各部位尺寸，生成专属定制纸样 PDF。
+          输入您的身材净尺寸数据，系统将自动推荐最接近的码号并计算成衣尺寸。修改尺寸后可重新生成纸样，每次生成将创建新版本（V1, V2, V3...）。
         </p>
       </div>
 
@@ -110,7 +165,7 @@ export default function CustomSizeTab() {
       <div className="card">
         <div className="card-title">
           <span className="card-title-icon">📝</span>
-          身材数据输入（cm）
+          身材数据输入 / Body Measurements (cm)
         </div>
 
         <div className="custom-input-grid">
@@ -142,14 +197,14 @@ export default function CustomSizeTab() {
           style={{ marginTop: 16 }}
           onClick={handleCalculate}
         >
-          🔍 计算推荐尺寸
+          🔍 计算推荐尺寸 / Calculate
         </button>
         <button
           className="btn btn-secondary"
           style={{ marginTop: 8 }}
           onClick={handleSave}
         >
-          💾 保存我的尺寸数据
+          💾 保存我的尺寸数据 / Save
         </button>
         {saved && (
           <div style={{
@@ -162,19 +217,19 @@ export default function CustomSizeTab() {
           <div style={{
             marginTop: 8, fontSize: 11, color: 'var(--text-light)', textAlign: 'center',
           }}>
-            📋 数据将保存在本地浏览器中 / Data saved locally in your browser
+            📋 数据将保存在本地浏览器中 / Data saved locally
           </div>
         )}
       </div>
 
       {/* 计算结果 */}
-      {result && (
+      {calculated && result && (
         <>
           {/* 推荐码号 */}
           <div className="card slide-up">
             <div className="card-title">
               <span className="card-title-icon">✅</span>
-              推荐结果
+              推荐结果 / Recommendation
             </div>
             <div className="recommend-banner">
               <div className="recommend-size">
@@ -190,7 +245,7 @@ export default function CustomSizeTab() {
             {/* 身材差值对比 */}
             <div style={{ marginTop: 12 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>
-                身材与推荐码号对比
+                身材与推荐码号对比 / Comparison
               </div>
               <div className="data-table-wrapper">
                 <table className="data-table">
@@ -229,19 +284,19 @@ export default function CustomSizeTab() {
             </div>
           </div>
 
-          {/* 成衣尺寸调整 */}
+          {/* 成衣尺寸微调 */}
           <div className="card slide-up">
             <div className="card-title">
               <span className="card-title-icon">🔧</span>
-              成衣尺寸微调（cm）
+              成衣尺寸微调 / Garment Size Adjust (cm)
             </div>
             <p style={{ fontSize: 11, color: 'var(--text-light)', marginBottom: 12 }}>
-              系统已自动计算推荐成衣尺寸，您可手动修改任意数值进行微调。
+              系统已自动计算推荐成衣尺寸，您可手动修改任意数值进行微调。修改后点击「重新生成纸样」创建新版本。
             </p>
 
             <div className="custom-input-grid">
               {sizeMeasurements.rows.map((row) => {
-                const autoVal = result.customSizes[row.name]
+                const autoVal = currentCustomSizes?.[row.name] || result.customSizes[row.name]
                 const manualVal = manualAdjust[row.name]
                 const displayVal = manualVal !== undefined ? manualVal : autoVal
                 const sVal = row.values[0]
@@ -277,23 +332,28 @@ export default function CustomSizeTab() {
             </div>
           </div>
 
-          {/* 导出 PDF */}
+          {/* 重新生成纸样 + 导出 */}
           <div className="card slide-up">
             <div className="card-title">
-              <span className="card-title-icon">📄</span>
-              导出定制纸样
+              <span className="card-title-icon">📐</span>
+              生成新版本纸样 / Regenerate Pattern
             </div>
             <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 12 }}>
-              将根据您调整后的尺寸生成专属纸样 PDF，包含：
+              将根据您调整后的尺寸重新生成纸样，当前版本为 <strong>V{version}</strong>，生成后将变为 <strong style={{ color: 'var(--primary)' }}>V{version + 1}</strong>。
             </p>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.8, marginBottom: 16 }}>
-              <p>✅ 6 个裁片的纸样图纸（含尺寸标注）</p>
+              <p>✅ 6 个裁片的纸样图纸（含中英双语尺寸标注）</p>
               <p>✅ 定制成衣尺寸表</p>
               <p>✅ 用料计算与辅料清单</p>
               <p>✅ 关键点位标注与布纹方向</p>
+              <p>✅ 支持 PDF / DXF / PRJ 三种格式导出</p>
             </div>
 
             <div className="export-summary">
+              <div className="export-summary-row">
+                <span>当前版本</span>
+                <strong>V{version}</strong>
+              </div>
               <div className="export-summary-row">
                 <span>基准码号</span>
                 <strong>S 码（放码基准）</strong>
@@ -302,18 +362,25 @@ export default function CustomSizeTab() {
                 <span>推荐码号</span>
                 <strong>{result.bestSize}</strong>
               </div>
-              <div className="export-summary-row">
-                <span>定制状态</span>
-                <strong style={{ color: 'var(--success)' }}>已调整</strong>
-              </div>
             </div>
 
+            {/* 重新生成按钮 */}
             <button
               className="btn btn-primary"
-              style={{ marginTop: 16 }}
+              style={{ marginTop: 16, background: regenerating ? 'var(--success)' : undefined }}
+              onClick={handleRegenerate}
+              disabled={regenerating}
+            >
+              {regenerating ? '⏳ 生成中... / Generating...' : `📐 重新生成纸样 V${version + 1} / Regenerate`}
+            </button>
+
+            {/* 单独导出 PDF */}
+            <button
+              className="btn btn-secondary"
+              style={{ marginTop: 8 }}
               onClick={handleExportPDF}
             >
-              📄 生成定制纸样 PDF
+              📄 仅导出当前版本 PDF / Export PDF
             </button>
           </div>
         </>
