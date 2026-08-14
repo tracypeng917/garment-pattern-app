@@ -80,8 +80,9 @@ export function generatePatternPDF(options = {}) {
   doc.text(sizeTableTitle, margin, y)
   y += 7
 
-  const sizes = customSizes ? ['Custom'] : sizeMeasurements.sizes
-  const colWidth = customSizes ? 40 : 22
+  // 自定义导出时列头也使用中英双语，避免只有英文
+  const sizes = customSizes ? ['Custom / 自定义'] : sizeMeasurements.sizes
+  const colWidth = customSizes ? 48 : 22
   const nameColWidth = 42
 
   doc.setFillColor(240, 240, 250)
@@ -435,28 +436,48 @@ function adjustPieceMeasurement(key, baseVal, customSizes) {
 }
 
 function getAdjustmentRatio(key, customSizes) {
-  const sBust = 84
-  const sWaist = 76
-  const sLength = 56
-  const sShoulder = 32
+  // 基准码 S 的成衣尺寸（用于推算自定义尺寸的调整比例）
+  const base = {
+    bust: 84,        // 胸围
+    waist: 76,       // 腰围
+    length: 56,      // 衣长
+    shoulder: 32,    // 肩宽
+    neckWidth: 16,   // 领宽
+    neckDepth: 7,    // 领深(前)
+    armhole: 22,     // 袖窿深
+  }
 
-  if (key.includes('胸围') || key.includes('Bust')) {
-    return (customSizes['胸围'] || sBust) / sBust
+  // 裁片 measurements 的 key 为双语格式，如 "衣长 / Length"、"胸围/4 / Bust÷4"。
+  // 取 "/" 前的中文部分优先匹配，英文关键词作为兜底，确保双语 key 都能命中。
+  const cn = (key.split('/')[0] || key).trim()
+
+  // 胸围 / Bust（含 "胸围/4 / Bust÷4"）
+  if (cn.includes('胸围') || key.includes('Bust')) {
+    return (customSizes['胸围'] || base.bust) / base.bust
   }
-  if (key.includes('腰围') || key.includes('Waist')) {
-    return (customSizes['腰围'] || sWaist) / sWaist
+  // 腰围 / Waist（含 "腰围/4 / Waist÷4"）
+  if (cn.includes('腰围') || key.includes('Waist')) {
+    return (customSizes['腰围'] || base.waist) / base.waist
   }
-  if (key.includes('衣长') || key.includes('Length')) {
-    return (customSizes['衣长'] || sLength) / sLength
+  // 袖窿深 / Armhole depth
+  if (cn.includes('袖窿') || key.includes('Armhole')) {
+    return (customSizes['袖窿深'] || base.armhole) / base.armhole
   }
-  if (key.includes('肩宽') || key.includes('Shoulder')) {
-    return (customSizes['肩宽'] || sShoulder) / sShoulder
+  // 领深 / Neck depth —— 必须在「领宽」之前判断，否则会被 key 中的 "Neck" 命中
+  if (cn.includes('领深') || key.includes('Neck depth') || key.includes('Neck Depth')) {
+    return (customSizes['领深(前)'] || base.neckDepth) / base.neckDepth
   }
-  if (key.includes('领') || key.includes('Neck')) {
-    return (customSizes['领宽'] || 16) / 16
+  // 领宽 / Neck width
+  if (cn.includes('领宽') || key.includes('Neck')) {
+    return (customSizes['领宽'] || base.neckWidth) / base.neckWidth
   }
-  if (key.includes('袖窿') || key.includes('Armhole')) {
-    return (customSizes['袖窿深'] || 22) / 22
+  // 肩宽 / Shoulder
+  if (cn.includes('肩宽') || key.includes('Shoulder')) {
+    return (customSizes['肩宽'] || base.shoulder) / base.shoulder
+  }
+  // 衣长 / Length
+  if (cn.includes('衣长') || key.includes('Length')) {
+    return (customSizes['衣长'] || base.length) / base.length
   }
   return 1
 }

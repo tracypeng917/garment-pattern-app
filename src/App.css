@@ -51,12 +51,216 @@ body {
 /* ==================== App Shell ==================== */
 .app-shell {
   display: flex;
-  flex-direction: column;
   height: 100%;
   max-width: 430px;
   margin: 0 auto;
   background: var(--bg);
   position: relative;
+  overflow: hidden;
+}
+
+/* ==================== Sidebar ==================== */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 280px;
+  height: 100%;
+  background: var(--card-bg);
+  z-index: 1000;
+  transform: translateX(-100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar.open {
+  transform: translateX(0);
+}
+
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 999;
+  animation: fadeIn 0.2s ease;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: calc(var(--safe-top) + 20px) 20px 16px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: white;
+}
+
+.sidebar-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.sidebar-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.sidebar-subtitle {
+  font-size: 11px;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.sidebar-user:active {
+  background: var(--bg);
+}
+
+.sidebar-user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.sidebar-user-info {
+  flex: 1;
+  overflow: hidden;
+}
+
+.sidebar-user-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-user-purpose {
+  font-size: 11px;
+  color: var(--text-light);
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 12px 0;
+  overflow-y: auto;
+}
+
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.sidebar-nav-item:active {
+  background: var(--bg);
+}
+
+.sidebar-nav-item.active {
+  background: rgba(108, 92, 231, 0.06);
+}
+
+.sidebar-nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--primary);
+  border-radius: 0 3px 3px 0;
+}
+
+.sidebar-nav-icon {
+  font-size: 20px;
+  width: 24px;
+  text-align: center;
+}
+
+.sidebar-nav-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+}
+
+.sidebar-nav-en {
+  font-size: 10px;
+  color: var(--text-light);
+  font-weight: 400;
+}
+
+.sidebar-nav-item.active .sidebar-nav-label {
+  color: var(--primary);
+}
+
+.sidebar-footer {
+  padding: 16px 20px calc(var(--safe-bottom) + 16px);
+  border-top: 1px solid var(--border);
+}
+
+.sidebar-version {
+  font-size: 10px;
+  color: var(--text-light);
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.sidebar-logout {
+  font-size: 13px;
+  color: var(--danger);
+  text-align: center;
+  cursor: pointer;
+  padding: 10px;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.sidebar-logout:active {
+  background: rgba(255, 118, 117, 0.08);
+}
+
+/* ==================== Main Content ==================== */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   overflow: hidden;
 }
 
@@ -112,6 +316,26 @@ body {
 
 .top-bar-back:active {
   background: var(--border);
+}
+
+.top-bar-menu {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.top-bar-menu span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: var(--text);
+  border-radius: 2px;
+  transition: all 0.3s;
 }
 
 .top-bar-action {

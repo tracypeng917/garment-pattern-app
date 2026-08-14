@@ -1,17 +1,21 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { bodyMeasurements, sizeMeasurements, recommendSize, calculateCustomGarmentSize } from '../data/mockData.js'
 import { generatePatternPDF } from '../utils/pdfExport.js'
+import { getBodyMeasurements, saveBodyMeasurements } from '../utils/storage.js'
 
 export default function CustomSizeTab() {
-  // 用户输入的身材数据
+  // 从 localStorage 加载已保存的身材数据
+  const savedBody = getBodyMeasurements()
+
+  // 用户输入的身材数据（优先使用已保存的数据）
   const [userBody, setUserBody] = useState({
-    '身高': '',
-    '胸围': '',
-    '腰围': '',
-    '臀围': '',
-    '肩宽': '',
-    '袖长': '',
-    '颈围': '',
+    '身高': savedBody?.['身高'] || '',
+    '胸围': savedBody?.['胸围'] || '',
+    '腰围': savedBody?.['腰围'] || '',
+    '臀围': savedBody?.['臀围'] || '',
+    '肩宽': savedBody?.['肩宽'] || '',
+    '袖长': savedBody?.['袖长'] || '',
+    '颈围': savedBody?.['颈围'] || '',
   })
 
   // 手动微调的成衣尺寸
@@ -19,6 +23,7 @@ export default function CustomSizeTab() {
 
   // 是否已计算
   const [calculated, setCalculated] = useState(false)
+  const [saved, setSaved] = useState(false)
 
   const handleChange = (name, value) => {
     setUserBody(prev => ({ ...prev, [name]: value === '' ? '' : parseFloat(value) }))
@@ -36,6 +41,24 @@ export default function CustomSizeTab() {
       return
     }
     setCalculated(true)
+    // 自动保存到 localStorage
+    saveBodyMeasurements(filtered)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
+
+  const handleSave = () => {
+    const filtered = {}
+    Object.entries(userBody).forEach(([k, v]) => {
+      if (v !== '' && v != null) filtered[k] = v
+    })
+    if (Object.keys(filtered).length === 0) {
+      alert('请先输入身材数据')
+      return
+    }
+    saveBodyMeasurements(filtered)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
   }
 
   const result = useMemo(() => {
@@ -121,6 +144,27 @@ export default function CustomSizeTab() {
         >
           🔍 计算推荐尺寸
         </button>
+        <button
+          className="btn btn-secondary"
+          style={{ marginTop: 8 }}
+          onClick={handleSave}
+        >
+          💾 保存我的尺寸数据
+        </button>
+        {saved && (
+          <div style={{
+            marginTop: 8, fontSize: 12, color: 'var(--success)', textAlign: 'center', fontWeight: 600,
+          }}>
+            ✅ 尺寸数据已保存，下次打开无需重新填写
+          </div>
+        )}
+        {Object.values(userBody).some(v => v !== '') && (
+          <div style={{
+            marginTop: 8, fontSize: 11, color: 'var(--text-light)', textAlign: 'center',
+          }}>
+            📋 数据将保存在本地浏览器中 / Data saved locally in your browser
+          </div>
+        )}
       </div>
 
       {/* 计算结果 */}

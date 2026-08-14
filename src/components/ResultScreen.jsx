@@ -10,20 +10,33 @@ import SewingTab from './SewingTab.jsx'
 import CustomSizeTab from './CustomSizeTab.jsx'
 import TutorialTab from './TutorialTab.jsx'
 
-const TABS = [
-  { id: 'overview', label: '概览', icon: '📋' },
-  { id: 'pattern', label: '纸样图纸', icon: '📐' },
-  { id: 'measure', label: '尺寸表', icon: '📏' },
-  { id: 'grading', label: '放码', icon: '🔢' },
-  { id: 'custom', label: '自定义', icon: '🎯' },
-  { id: 'material', label: '用料', icon: '🧵' },
-  { id: 'sewing', label: '工序', icon: '✂️' },
-  { id: 'tutorial', label: '教程', icon: '📚' },
-]
-
-export default function ResultScreen({ images, onReset }) {
+export default function ResultScreen({ images, onReset, userPurpose }) {
   const [activeTab, setActiveTab] = useState('overview')
   const [thumbIndex, setThumbIndex] = useState(0)
+
+  // 根据用户用途决定显示哪些标签
+  const isCommercial = userPurpose === 'commercial'
+
+  const TABS = isCommercial
+    ? [
+        { id: 'overview', label: '概览', icon: '📋' },
+        { id: 'pattern', label: '纸样图纸', icon: '📐' },
+        { id: 'measure', label: '尺寸表', icon: '📏' },
+        { id: 'grading', label: '放码', icon: '🔢' },
+        { id: 'custom', label: '自定义', icon: '🎯' },
+        { id: 'material', label: '用料', icon: '🧵' },
+        { id: 'sewing', label: '工序', icon: '✂️' },
+        { id: 'tutorial', label: '教程', icon: '📚' },
+      ]
+    : [
+        { id: 'overview', label: '概览', icon: '📋' },
+        { id: 'pattern', label: '纸样图纸', icon: '📐' },
+        { id: 'measure', label: '尺寸表', icon: '📏' },
+        { id: 'custom', label: '我的尺寸', icon: '🎯' },
+        { id: 'material', label: '用料', icon: '🧵' },
+        { id: 'sewing', label: '工序', icon: '✂️' },
+        { id: 'tutorial', label: '教程', icon: '📚' },
+      ]
 
   const handleExportPDF = () => {
     generatePatternPDF({ sizeLabel: 'S (base)', customSizes: null })
@@ -86,6 +99,18 @@ export default function ResultScreen({ images, onReset }) {
           </div>
         </div>
 
+        {/* Mode Badge */}
+        <div style={{ padding: '0 16px', marginBottom: 8 }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 20,
+            background: isCommercial ? 'rgba(0, 206, 201, 0.1)' : 'rgba(108, 92, 231, 0.1)',
+            color: isCommercial ? 'var(--accent)' : 'var(--primary)',
+          }}>
+            {isCommercial ? '🏭 商业模式 / Commercial Mode' : '🏠 个人模式 / Personal Mode'}
+          </div>
+        </div>
+
         {/* Tab Bar */}
         <div className="tab-bar">
           {TABS.map((tab) => (
@@ -104,7 +129,7 @@ export default function ResultScreen({ images, onReset }) {
           {activeTab === 'overview' && <OverviewTab onExportPDF={handleExportPDF} />}
           {activeTab === 'pattern' && <PatternView />}
           {activeTab === 'measure' && <MeasurementsTab />}
-          {activeTab === 'grading' && <GradingTab />}
+          {isCommercial && activeTab === 'grading' && <GradingTab />}
           {activeTab === 'custom' && <CustomSizeTab />}
           {activeTab === 'material' && <MaterialTab />}
           {activeTab === 'sewing' && <SewingTab />}
@@ -128,7 +153,7 @@ export default function ResultScreen({ images, onReset }) {
         </div>
         <div className={`nav-item ${activeTab === 'custom' ? 'active' : ''}`} onClick={() => setActiveTab('custom')}>
           <span className="nav-item-icon">🎯</span>
-          <span className="nav-item-label">定制</span>
+          <span className="nav-item-label">{isCommercial ? '定制' : '我的尺寸'}</span>
         </div>
         <div className={`nav-item ${activeTab === 'material' ? 'active' : ''}`} onClick={() => setActiveTab('material')}>
           <span className="nav-item-icon">🧵</span>

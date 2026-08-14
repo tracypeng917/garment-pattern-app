@@ -109,6 +109,38 @@ export default function UploadScreen({ onUpload }) {
               <p>纸样标注中英双语，支持自定义尺寸导出</p>
             </div>
           </div>
+          <div className="upload-feature">
+            <div className="upload-feature-icon" style={{ background: 'rgba(255,118,117,0.1)' }}>🤖</div>
+            <div className="upload-feature-text">
+              <h4>AI 智能识别</h4>
+              <p>支持背心、衬衫、裙子、裤子、连衣裙等多品类</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Supported garment types */}
+        <div style={{
+          width: '100%', marginTop: 16, padding: 14,
+          background: 'var(--card-bg)', borderRadius: 'var(--radius)',
+          boxShadow: 'var(--shadow)',
+        }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>
+            🏷️ 支持识别的服装类型 / Supported Garment Types
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {['背心', 'T恤', '衬衫', '卫衣', '裙子', '裤子', '连衣裙', '外套', '针织衫'].map(type => (
+              <span key={type} style={{
+                fontSize: 11, padding: '3px 8px', borderRadius: 12,
+                background: 'var(--bg)', color: 'var(--text-secondary)', fontWeight: 500,
+              }}>
+                {type}
+              </span>
+            ))}
+          </div>
+          <div style={{ fontSize: 10, color: 'var(--text-light)', marginTop: 8, lineHeight: 1.4 }}>
+            💡 建议上传正面、背面、侧面等多角度图片，提高识别准确率<br/>
+            Upload multiple angles for better accuracy
+          </div>
         </div>
       </div>
     </div>
