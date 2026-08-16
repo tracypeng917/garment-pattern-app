@@ -4,7 +4,8 @@ import { useLang } from '../i18n/LanguageContext.jsx'
 export default function UploadScreen({ onUpload }) {
   const { t } = useLang()
   const [images, setImages] = useState([])
-  const fileInputRef = useRef(null)
+  const fileInputRef = useRef(null)       // 相册选择（不带 capture）
+  const cameraInputRef = useRef(null)     // 拍照（带 capture）
 
   // 附加信息（可选）
   const [showExtra, setShowExtra] = useState(false)
@@ -25,6 +26,8 @@ export default function UploadScreen({ onUpload }) {
       }
       reader.readAsDataURL(file)
     })
+    // 重置 input，确保同一文件可重复选择
+    e.target.value = ''
   }
 
   const handleRemove = (idx) => {
@@ -69,24 +72,47 @@ export default function UploadScreen({ onUpload }) {
           <p style={{ whiteSpace: 'pre-line' }}>{t('uploadDesc')}</p>
         </div>
 
+        {/* 相册选择（不带 capture，可多选） */}
         <input
           ref={fileInputRef}
           type="file"
           accept="image/*"
-          capture="environment"
           multiple
+          style={{ display: 'none' }}
+          onChange={handleFileChange}
+        />
+        {/* 拍照（带 capture，单张） */}
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
           style={{ display: 'none' }}
           onChange={handleFileChange}
         />
 
         {/* Upload zone */}
-        <div
-          className="upload-zone"
-          onClick={() => fileInputRef.current?.click()}
-        >
+        <div className="upload-zone">
           <div className="upload-zone-icon">📷</div>
           <div className="upload-zone-text">{t('clickUpload')}</div>
           <div className="upload-zone-hint">{t('uploadHint')}</div>
+          {/* 双按钮：拍照 / 从相册选择 */}
+          <div style={{ display: 'flex', gap: 10, marginTop: 16, width: '100%' }}>
+            <button
+              className="btn btn-primary"
+              style={{ flex: 1, fontSize: 14, padding: '12px 16px' }}
+              onClick={() => cameraInputRef.current?.click()}
+            >
+              📷 {t('takePhoto')}
+            </button>
+            <button
+              className="btn btn-secondary"
+              style={{ flex: 1, fontSize: 14, padding: '12px 16px' }}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              🖼️ {t('chooseAlbum')}
+            </button>
+          </div>
         </div>
 
         {/* Image previews */}
