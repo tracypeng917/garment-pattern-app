@@ -52,7 +52,8 @@ body {
 .app-shell {
   display: flex;
   height: 100%;
-  max-width: 430px;
+  width: 100%;
+  max-width: 100%;
   margin: 0 auto;
   background: var(--bg);
   position: relative;
@@ -278,6 +279,38 @@ body {
   }
   .sidebar-overlay {
     display: none !important;
+  }
+}
+
+/* ==================== Desktop Content Layout ==================== */
+@media (min-width: 769px) {
+  .main-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .top-bar {
+    padding-left: max(20px, calc((100% - 860px) / 2));
+    padding-right: max(20px, calc((100% - 860px) / 2));
+  }
+
+  .page-content {
+    max-width: 860px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    padding-bottom: 60px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .page-content {
+    max-width: 920px;
+  }
+
+  .top-bar {
+    padding-left: max(20px, calc((100% - 920px) / 2));
+    padding-right: max(20px, calc((100% - 920px) / 2));
   }
 }
 

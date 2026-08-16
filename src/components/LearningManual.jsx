@@ -13,7 +13,7 @@ const LANG_LABEL = { zh: '中文', en: 'EN', bi: '双语' }
 // localStorage 持久化阅读位置的 key
 const POSITION_KEY = 'patternai_manual_position'
 
-// 仅注入一次响应式样式（目录网格 + 详情页吸顶条 + 移动端 430px 适配）
+// 仅注入一次响应式样式（目录网格 + 详情页吸顶条 + 移动端/桌面端自适配）
 const STYLE_ID = 'learning-manual-responsive'
 if (typeof document !== 'undefined' && !document.getElementById(STYLE_ID)) {
   const styleEl = document.createElement('style')
@@ -32,6 +32,10 @@ if (typeof document !== 'undefined' && !document.getElementById(STYLE_ID)) {
 .lm-toc-card:active {
   transform: scale(0.985);
   box-shadow: 0 4px 20px rgba(108, 92, 231, 0.18);
+}
+.lm-toc-card:hover {
+  border-color: rgba(108, 92, 231, 0.25);
+  box-shadow: 0 6px 24px rgba(108, 92, 231, 0.12);
 }
 /* 详情页顶部条吸顶 */
 .lm-detail-topbar {
@@ -55,6 +59,28 @@ if (typeof document !== 'undefined' && !document.getElementById(STYLE_ID)) {
   .lm-chapter-card { padding: 14px !important; }
   .lm-section-content { padding: 14px !important; }
   .lm-pager-btn { padding: 10px 0 !important; font-size: 12.5px !important; }
+}
+
+/* 桌面端适配（min-width: 769px） */
+@media (min-width: 769px) {
+  .lm-hero { padding: 32px 28px !important; }
+  .lm-toc-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .lm-toc-card { padding: 18px 20px !important; }
+  .lm-detail-topbar { padding: 12px 18px !important; }
+  .lm-chapter-card { padding: 24px !important; }
+  .lm-section-content { padding: 28px !important; }
+  .lm-pager-btn { padding: 14px 0 !important; font-size: 14px !important; }
+}
+
+/* 大屏桌面（min-width: 1200px） */
+@media (min-width: 1200px) {
+  .lm-toc-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 18px;
+  }
 }
 `
   document.head.appendChild(styleEl)

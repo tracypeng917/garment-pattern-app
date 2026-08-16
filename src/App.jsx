@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useLang } from './i18n/LanguageContext.jsx'
 import { isLoggedIn, getUser, setUser, logout, addHistoryRecord, addVersionToRecord, getHistoryRecord, getAvatar, setAvatar, removeAvatar, switchUserMode } from './utils/storage.js'
 import AuthScreen from './components/AuthScreen.jsx'
@@ -28,7 +28,20 @@ export default function App() {
   const { t, lang, changeLang, languages } = useLang()
   const [authed, setAuthed] = useState(isLoggedIn())
   const [view, setView] = useState('home')
-  const [sidebarOpen, setSidebarOpen] = useState(true) // 默认展开
+  const [sidebarOpen, setSidebarOpen] = useState(
+    typeof window !== 'undefined' ? window.innerWidth >= 769 : true
+  )
+
+  // 窗口尺寸变化时自动适配侧边栏：移动端自动收起，桌面端保持用户选择
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 769) {
+        setSidebarOpen(false)
+      }
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
   const [screen, setScreen] = useState('upload')
   const [images, setImages] = useState([])
   const [avatarVersion, setAvatarVersion] = useState(0)
