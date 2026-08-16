@@ -2,15 +2,16 @@ import { useState, useEffect } from 'react'
 import { gradingRules } from '../data/mockData.js'
 
 const STEPS = [
-  { label: '多图预处理与特征提取', labelEn: 'Multi-image preprocessing & feature extraction', duration: 500 },
-  { label: '服装类别分类（上装/下装/连衣裙）', labelEn: 'Garment category classification', duration: 600 },
-  { label: '款式细节识别（领型/袖型/版型）', labelEn: 'Style detail recognition (neckline/sleeve/fit)', duration: 700 },
-  { label: '面料类型分析（针织/梭织/混纺）', labelEn: 'Fabric type analysis (knit/woven/blended)', duration: 500 },
-  { label: '服装数据库比对（10,000+ 款式）', labelEn: 'Database matching (10,000+ styles)', duration: 600 },
-  { label: '结构分解与裁片提取', labelEn: 'Structure decomposition & piece extraction', duration: 500 },
-  { label: '纸样图纸生成（中英双语）', labelEn: 'Pattern generation (bilingual)', duration: 500 },
-  { label: `尺寸放码计算（${gradingRules.baseSize} 码基准）`, labelEn: `Size grading calculation (${gradingRules.baseSize} base)`, duration: 400 },
-  { label: '新手教程与用料计算', labelEn: 'Tutorial & material calculation', duration: 300 },
+  { label: '多图预处理与特征提取', labelEn: 'Multi-image preprocessing & feature extraction', duration: 500, brand: '通用' },
+  { label: '服装品类分类（参考 H&M/Zara 体系）', labelEn: 'Category classification (H&M/Zara reference)', duration: 600, brand: '品牌' },
+  { label: '款式细节识别（领型/袖型/版型）', labelEn: 'Style detail recognition (neckline/sleeve/fit)', duration: 700, brand: '通用' },
+  { label: '面料类型分析（针织/梭织/混纺）', labelEn: 'Fabric type analysis (knit/woven/blended)', duration: 500, brand: '通用' },
+  { label: '品牌数据库比对（H&M + Zara 10,000+ 款式）', labelEn: 'Brand database matching (H&M + Zara)', duration: 600, brand: '品牌' },
+  { label: '版型判断与合身度分析', labelEn: 'Fit & ease analysis (Slim/Regular/Relaxed)', duration: 500, brand: '品牌' },
+  { label: '结构分解与裁片提取', labelEn: 'Structure decomposition & piece extraction', duration: 500, brand: '通用' },
+  { label: '纸样图纸生成（中英双语）', labelEn: 'Pattern generation (bilingual)', duration: 500, brand: '通用' },
+  { label: `尺寸放码计算（${gradingRules.baseSize} 码基准）`, labelEn: `Size grading calculation (${gradingRules.baseSize} base)`, duration: 400, brand: '通用' },
+  { label: '新手教程与用料计算', labelEn: 'Tutorial & material calculation', duration: 300, brand: '通用' },
 ]
 
 export default function LoadingScreen({ imageCount, onComplete }) {
@@ -45,10 +46,34 @@ export default function LoadingScreen({ imageCount, onComplete }) {
         <div className="loading-animation">
           <div className="loading-circle"></div>
         </div>
-        <div className="loading-text">AI 正在分析中...</div>
+        <div className="loading-text">AI 识图分析中...</div>
         <div className="loading-subtext">
-          正在分析 {imageCount} 张图片，识别服装款式并生成纸样<br/>
-          Analyzing {imageCount} images, recognizing style & generating patterns
+          正在分析 {imageCount} 张图片，结合 H&M 和 Zara 品牌数据识别款式<br/>
+          Analyzing {imageCount} images with H&M & Zara brand reference
+        </div>
+
+        {/* Brand badges */}
+        <div style={{
+          display: 'flex', justifyContent: 'center', gap: 8, marginTop: 8, marginBottom: 4,
+        }}>
+          <span style={{
+            fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 12,
+            background: 'rgba(233, 69, 69, 0.1)', color: '#E94545',
+          }}>
+            H&M
+          </span>
+          <span style={{
+            fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 12,
+            background: 'rgba(35, 35, 35, 0.08)', color: '#232323',
+          }}>
+            Zara
+          </span>
+          <span style={{
+            fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 12,
+            background: 'rgba(108, 92, 231, 0.1)', color: 'var(--primary)',
+          }}>
+            10,000+ 款式
+          </span>
         </div>
 
         {/* Progress Bar */}
@@ -79,6 +104,14 @@ export default function LoadingScreen({ imageCount, onComplete }) {
                 {i < currentStep ? '✓' : i + 1}
               </div>
               <span>{step.label}</span>
+              {step.brand === '品牌' && i === currentStep && (
+                <span style={{
+                  marginLeft: 'auto', fontSize: 9, color: 'var(--accent)',
+                  fontWeight: 600, flexShrink: 0,
+                }}>
+                  🏷️
+                </span>
+              )}
             </div>
           ))}
         </div>
@@ -87,8 +120,8 @@ export default function LoadingScreen({ imageCount, onComplete }) {
           marginTop: 16, fontSize: 10, color: 'var(--text-light)', textAlign: 'center',
           lineHeight: 1.5, padding: '0 20px',
         }}>
-          💡 AI 识别基于深度学习模型，支持上装、下装、连衣裙等类别<br/>
-          AI recognition powered by deep learning, supports tops, bottoms, dresses
+          💡 AI 已学习 H&M 和 Zara 全部模特图及尺寸表，能精准判断版型、款式和合身度<br/>
+          AI trained on H&M & Zara model photos and size charts for accurate fit analysis
         </div>
       </div>
     </div>

@@ -26,8 +26,8 @@ export default function PersonalCustom({ userPurpose = 'personal' }) {
     const record = addHistoryRecord({
       garmentName: garmentInfo.name,
       garmentNameEn: garmentInfo.nameEn,
-      thumbnail: imgs && imgs.length > 0 ? imgs[0] : '',
-      images: imgs || [],
+      thumbnail: images && images.length > 0 ? images[0] : '',
+      images: images || [],
       sizeLabel: 'Custom',
       customSizes: null,
       metadata: uploadMetadata,
@@ -37,7 +37,7 @@ export default function PersonalCustom({ userPurpose = 'personal' }) {
     setCurrentCustomSizes(null)
     setCurrentSizeLabel('Custom')
     setScreen('result')
-  }, [imgs, uploadMetadata])
+  }, [images, uploadMetadata])
 
   const handleReset = useCallback(() => {
     setImages([])

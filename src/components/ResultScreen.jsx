@@ -231,14 +231,14 @@ export default function ResultScreen({
                   </div>
                 </div>
               )}
-              {/* AI 调整提示 - 仅商业模式且有附加信息时显示 */}
-              {isCommercial && (
+              {/* AI 调整提示 - 所有模式且有附加信息时显示 */}
+              {(isCommercial || isPersonal) && (
                 <div style={{
                   marginTop: 8, padding: '6px 10px',
                   background: 'rgba(0, 184, 148, 0.06)', borderRadius: 8,
                   fontSize: 11, color: 'var(--success)', lineHeight: 1.5,
                 }}>
-                  🤖 AI 已根据附加信息调整纸样版型和尺寸
+                  🤖 AI 已根据 H&M 和 Zara 品牌数据及附加信息调整纸样版型和尺寸
                 </div>
               )}
             </div>

@@ -504,6 +504,70 @@ export const learningManual = {
         }
       ]
     },
+
+    // ==================== 11. 品牌参考与版型分析 ====================
+    {
+      id: 'brand-reference',
+      title: '品牌参考与版型分析',
+      titleEn: 'Brand Reference & Fit Analysis',
+      icon: '🏷️',
+      description: '智裁 AI 已学习 H&M 和 Zara 品牌的模特图、尺寸表和版型标准，本章详解如何利用品牌数据提升识图精准度。',
+      descriptionEn: 'PatternAI has learned H&M and Zara model photos, size charts, and fit standards. This chapter explains how brand data enhances recognition accuracy.',
+      sections: [
+        {
+          id: 'hm-size-guide',
+          title: 'H&M 尺码体系与版型',
+          titleEn: 'H&M Size System & Fit',
+          content: 'H&M 是全球快时尚品牌，其尺码体系以欧洲标准为基础。女装尺码从 XXS 到 XXL，对应 EUR 30-42。胸围范围 76-100cm（XXS-XL），腰围 60-84cm，臀围 84-108cm。男装从 XS 到 XXL，对应 EUR 44-54，胸围 88-112cm。H&M 的版型分为四类：Slim Fit（修身，放松量 2-6cm）、Regular Fit（标准，放松量 6-10cm）、Relaxed Fit（宽松，放松量 10-16cm）、Oversized（超大，放松量 16cm+）。识别 H&M 款式时，可通过肩线位置判断版型：肩线正好在肩点为 Slim/Regular，肩线下落 2-4cm 为 Relaxed，下落 5cm 以上为 Oversized。智裁 AI 已将 H&M 全部品类（T恤、衬衫、针织衫、卫衣、裤装、裙装、连衣裙、外套）的版型参数录入数据库，识图时可自动匹配最接近的参考款。',
+          contentEn: 'H&M is a global fast-fashion brand using European sizing. Women\'s sizes run XXS to XXL (EUR 30-42), with bust 76-100cm, waist 60-84cm, and hips 84-108cm. Men\'s sizes run XS to XXL (EUR 44-54), chest 88-112cm. H&M classifies fits into four types: Slim Fit (ease 2-6cm), Regular Fit (ease 6-10cm), Relaxed Fit (ease 10-16cm), and Oversized (ease 16cm+). To identify the fit, check the shoulder seam: at the shoulder point = Slim/Regular; dropped 2-4cm = Relaxed; dropped 5cm+ = Oversized. PatternAI has cataloged all H&M categories (tees, shirts, knits, hoodies, pants, skirts, dresses, outerwear) for automatic matching during recognition.',
+          tips: [
+            'H&M 的 Regular Fit 最接近标准尺码，如果是 Oversized 款式，建议选小一码',
+            'H&M Regular Fit is closest to standard sizing; for Oversized styles, consider sizing down',
+            'H&M 针织面料缩水率约 3-5%，裁剪前要预缩水',
+            'H&M knit fabrics shrink 3-5%; pre-shrink before cutting',
+          ]
+        },
+        {
+          id: 'zara-size-guide',
+          title: 'Zara 尺码体系与产品线',
+          titleEn: 'Zara Size System & Collections',
+          content: 'Zara 是西班牙快时尚品牌，其尺码同样以欧洲标准为基础。女装从 XXS 到 XL，对应 EUR 32-42。胸围范围 80-102cm（XXS-XL），腰围 58-82cm，臀围 86-110cm。Zara 有三个产品线，版型各不相同：Zara Woman（○标记）面向成熟女性，版型更合身，通常 true to size 或略大；Zara Basic（□标记）是日常基础款，版型标准，最接近标准尺码；TRF（△标记）是年轻休闲线，版型偏小偏窄，建议 size up。Zara 在同等尺码下，胸围、腰围、臀围通常比 H&M 大 2-4cm，但 TRF 线偏小。识别 Zara 款式时，要特别注意产品线标记：圆圈、方块或三角形，这直接影响版型判断和尺码推荐。',
+          contentEn: 'Zara is a Spanish fast-fashion brand using European sizing. Women\'s sizes run XXS to XL (EUR 32-42), with bust 80-102cm, waist 58-82cm, and hips 86-110cm. Zara has three collections with different fits: Zara Woman (○) for mature women, more tailored, true to size or slightly large; Zara Basic (□) for everyday staples, standard fit, closest to standard sizing; TRF (△) for young casual wear, runs small and narrow, size up recommended. At the same size, Zara is typically 2-4cm larger than H&M in bust, waist, and hips, but TRF runs small. When identifying Zara garments, pay attention to the collection symbol (circle, square, or triangle) — it directly affects fit and size recommendations.',
+          tips: [
+            'Zara TRF 线偏小偏窄，如果平时穿 S 码，TRF 建议选 M',
+            'Zara TRF runs small and narrow — if you usually wear S, consider M in TRF',
+            'Zara 连衣裙使用与上装相同的尺码，但需要同时考虑胸围、腰围和臀围',
+            'Zara dresses use the same sizing as tops, but consider bust, waist, and hips together',
+          ]
+        },
+        {
+          id: 'brand-comparison',
+          title: '品牌间尺码对照与差异',
+          titleEn: 'Cross-Brand Size Comparison',
+          content: '智裁 AI 已建立 H&M 和 Zara 之间的尺码对照表。女装 M 码对照：H&M M 码对应胸围 88cm、腰围 72cm、臀围 96cm；Zara M 码对应胸围 90cm、腰围 70cm、臀围 98cm。差异分析：Zara 在同等尺码下，胸围和臀围通常比 H&M 大 2cm，但腰围比 H&M 小 2cm，说明 Zara 更收腰、更修身。男装 M 码对照：H&M M 码对应胸围 96cm、腰围 84cm；Zara M 码对应胸围 96cm、腰围 82cm。差异分析：男装胸围接近，但 Zara 腰围比 H&M 小 2-4cm，Zara 男装更修腰。在做纸样放码时，智裁 AI 会参考两个品牌的尺码差值：胸围每码差值约 ±2cm，腰围每码差值约 ±2cm，衣长每码差值约 ±1cm。如果用户上传的服装无法确定品牌，AI 会同时参考两个品牌的尺码表，取中间值作为放码基准。',
+          contentEn: 'PatternAI has built a cross-brand size comparison between H&M and Zara. Women\'s M comparison: H&M M = bust 88cm, waist 72cm, hips 96cm; Zara M = bust 90cm, waist 70cm, hips 98cm. Analysis: at the same size, Zara is 2cm larger in bust and hips but 2cm smaller in waist — Zara is more fitted at the waist. Men\'s M comparison: H&M M = chest 96cm, waist 84cm; Zara M = chest 96cm, waist 82cm. Analysis: chest is similar, but Zara waist is 2-4cm smaller — Zara men\'s is more waisted. For grading, PatternAI references both brands: bust ±2cm per size, waist ±2cm per size, length ±1cm per size. If the brand cannot be identified, AI uses both charts and averages for the grading base.',
+          tips: [
+            '如果不确定服装品牌，以 H&M 标准尺码为基准最安全，因为最接近标准',
+            'If unsure of the brand, use H&M standard sizing as the base — it is closest to standard',
+            'Zara 和 H&M 的内缝长都是 79cm 左右，裤装放码时内缝长变化很小',
+            'Both Zara and H&M inside leg is about 79cm — inseam changes little during grading',
+          ]
+        },
+        {
+          id: 'fit-recognition',
+          title: '从模特图学习版型判断',
+          titleEn: 'Learning Fit from Model Photos',
+          content: '智裁 AI 通过分析 H&M 和 Zara 的所有模特图，总结出从图片判断版型的四大标准。第一，肩线位置：肩线正好在肩点 = Slim/Regular Fit；肩线下落 2-4cm = Relaxed Fit；肩线下落 5cm 以上 = Oversized。第二，胸部贴合度：衣服紧贴胸部、可见身体曲线 = Slim；适度贴合有空间 = Regular；宽松下垂有垂坠感 = Relaxed；非常宽大不显身材 = Oversized。第三，腰部定义：腰部明显收窄 = Slim；腰部略收 = Regular；腰部无明显变化 = Relaxed/Oversized。第四，整体放松量：通过衣服与身体之间的空隙判断，Slim 放松量 2-6cm，Regular 6-10cm，Relaxed 10-16cm，Oversized 16cm 以上。AI 将这四个标准应用于每张上传图片，综合判断版型类别，然后匹配品牌数据库中最接近的参考款。',
+          contentEn: 'PatternAI analyzed all H&M and Zara model photos and identified four criteria for judging fit from images. 1) Shoulder seam position: at the shoulder point = Slim/Regular; dropped 2-4cm = Relaxed; dropped 5cm+ = Oversized. 2) Bust fit: body-hugging with visible curves = Slim; moderate contact with room = Regular; loose with drape = Relaxed; very loose, obscuring the figure = Oversized. 3) Waist definition: clearly narrowed = Slim; slightly narrowed = Regular; no waist shaping = Relaxed/Oversized. 4) Overall ease: Slim 2-6cm, Regular 6-10cm, Relaxed 10-16cm, Oversized 16cm+. AI applies all four criteria to each uploaded image, determines the fit category, then matches the closest reference garment in the brand database.',
+          tips: [
+            '判断版型时要多角度观察，正面图看肩线和胸部，侧面图看放松量',
+            'Judge fit from multiple angles — front for shoulder and bust, side for ease',
+            '如果衣服有弹性面料，判断版型时要考虑弹性回复，不要太紧才算 Slim',
+            'For stretch fabrics, account for fabric recovery — don\'t require tightness for Slim',
+          ]
+        },
+      ]
+    },
   ]
 }
 
