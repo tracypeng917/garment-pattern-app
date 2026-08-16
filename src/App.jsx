@@ -1,14 +1,15 @@
 import { useState, useCallback, useRef } from 'react'
-import { isLoggedIn, getUser, logout, addHistoryRecord, addVersionToRecord, getHistoryRecord, getAvatar, setAvatar, removeAvatar } from './utils/storage.js'
+import { useLang } from './i18n/LanguageContext.jsx'
+import { isLoggedIn, getUser, setUser, logout, addHistoryRecord, addVersionToRecord, getHistoryRecord, getAvatar, setAvatar, removeAvatar, switchUserMode } from './utils/storage.js'
 import AuthScreen from './components/AuthScreen.jsx'
 import UploadScreen from './components/UploadScreen.jsx'
 import LoadingScreen from './components/LoadingScreen.jsx'
 import ResultScreen from './components/ResultScreen.jsx'
+import PersonalCustom from './components/PersonalCustom.jsx'
 import LearningManual from './components/LearningManual.jsx'
 import HistoryView from './components/HistoryView.jsx'
-import { garmentInfo } from './data/mockData.js'
+import { garmentInfo, gradingRules } from './data/mockData.js'
 
-// 默认剪刀头像 SVG（智裁 logo 风格）
 function ScissorsAvatar({ size = 40, fontSize = 22 }) {
   return (
     <div style={{
@@ -23,51 +24,26 @@ function ScissorsAvatar({ size = 40, fontSize = 22 }) {
   )
 }
 
-// 用户头像组件（支持自定义图片或默认剪刀）
-function UserAvatar({ size = 40, fontSize = 22, onClick, style }) {
-  const [avatar, setAvatarState] = useState(getAvatar())
-
-  const handleAvatarChange = (newAvatar) => {
-    setAvatarState(newAvatar)
-  }
-
-  // 暴露更新方法给父组件
-  if (window.__updateUserAvatar) {
-    window.__updateUserAvatar = handleAvatarChange
-  }
-
-  if (avatar) {
-    return (
-      <img
-        src={avatar}
-        alt="头像"
-        onClick={onClick}
-        style={{
-          width: size, height: size, borderRadius: '50%',
-          objectFit: 'cover', cursor: onClick ? 'pointer' : 'default',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          ...style,
-        }}
-      />
-    )
-  }
-  return <ScissorsAvatar size={size} fontSize={fontSize} />
-}
-
 export default function App() {
+  const { t, lang, changeLang, languages } = useLang()
   const [authed, setAuthed] = useState(isLoggedIn())
-  const [view, setView] = useState('home') // home | manual | history | account
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [screen, setScreen] = useState('upload') // upload | loading | result
+  const [view, setView] = useState('home')
+  const [sidebarOpen, setSidebarOpen] = useState(true) // 默认展开
+  const [screen, setScreen] = useState('upload')
   const [images, setImages] = useState([])
-  const [avatarVersion, setAvatarVersion] = useState(0) // 用于强制刷新头像
-  const [currentRecordId, setCurrentRecordId] = useState(null) // 当前纸样对应的历史记录 ID
-  const [currentVersion, setCurrentVersion] = useState(1) // 当前版本号
-  const [currentCustomSizes, setCurrentCustomSizes] = useState(null) // 当前自定义尺寸
-  const [currentSizeLabel, setCurrentSizeLabel] = useState('S (base)') // 当前尺寸标签
+  const [avatarVersion, setAvatarVersion] = useState(0)
+  const [currentRecordId, setCurrentRecordId] = useState(null)
+  const [currentVersion, setCurrentVersion] = useState(1)
+  const [currentCustomSizes, setCurrentCustomSizes] = useState(null)
+  const [currentSizeLabel, setCurrentSizeLabel] = useState(`${gradingRules.baseSize} (base)`)
+  const [uploadMetadata, setUploadMetadata] = useState(null)
+  const [userPurpose, setUserPurpose] = useState(getUser()?.purpose || 'personal')
 
-  const handleUpload = useCallback((imgs) => {
+  const isPersonal = userPurpose === 'personal'
+
+  const handleUpload = useCallback((imgs, metadata) => {
     setImages(imgs)
+    setUploadMetadata(metadata)
     setScreen('loading')
   }, [])
 
@@ -77,15 +53,16 @@ export default function App() {
       garmentNameEn: garmentInfo.nameEn,
       thumbnail: images && images.length > 0 ? images[0] : '',
       images: images || [],
-      sizeLabel: 'S (base)',
+      sizeLabel: `${gradingRules.baseSize} (base)`,
       customSizes: null,
+      metadata: uploadMetadata,
     })
     setCurrentRecordId(record.id)
     setCurrentVersion(1)
     setCurrentCustomSizes(null)
-    setCurrentSizeLabel('S (base)')
+    setCurrentSizeLabel(`${gradingRules.baseSize} (base)`)
     setScreen('result')
-  }, [images])
+  }, [images, uploadMetadata])
 
   const handleReset = useCallback(() => {
     setImages([])
@@ -93,10 +70,10 @@ export default function App() {
     setCurrentRecordId(null)
     setCurrentVersion(1)
     setCurrentCustomSizes(null)
-    setCurrentSizeLabel('S (base)')
+    setCurrentSizeLabel(`${gradingRules.baseSize} (base)`)
+    setUploadMetadata(null)
   }, [])
 
-  // 从历史记录恢复到纸样结果页
   const handleRestoreFromHistory = useCallback((record) => {
     setImages(record.images || [])
     setCurrentRecordId(record.id)
@@ -104,27 +81,39 @@ export default function App() {
     const latestVersion = versions.length > 0 ? versions[versions.length - 1] : null
     setCurrentVersion(latestVersion ? latestVersion.version : 1)
     setCurrentCustomSizes(record.customSizes || null)
-    setCurrentSizeLabel(record.sizeLabel || 'S (base)')
+    setCurrentSizeLabel(record.sizeLabel || `${gradingRules.baseSize} (base)`)
+    setUploadMetadata(record.metadata || null)
     setView('home')
     setScreen('result')
   }, [])
 
-  // 修改尺寸后重新生成纸样（版本递增）
   const handleRegenerate = useCallback((newCustomSizes, newSizeLabel) => {
     if (currentRecordId) {
       addVersionToRecord(currentRecordId, {
-        sizeLabel: newSizeLabel || '自定义 / Custom',
+        sizeLabel: newSizeLabel || t('customSize'),
         customSizes: newCustomSizes,
       })
       setCurrentVersion(v => v + 1)
       setCurrentCustomSizes(newCustomSizes)
-      setCurrentSizeLabel(newSizeLabel || '自定义 / Custom')
+      setCurrentSizeLabel(newSizeLabel || t('customSize'))
     }
-  }, [currentRecordId])
+  }, [currentRecordId, t])
+
+  // 切换用户模式（个人 ↔ 商业）
+  const handleSwitchMode = (newPurpose) => {
+    switchUserMode(newPurpose)
+    setUserPurpose(newPurpose)
+    setView('home')
+    setScreen('upload')
+    setImages([])
+    setCurrentRecordId(null)
+    setCurrentVersion(1)
+    setCurrentCustomSizes(null)
+    setCurrentSizeLabel(`${gradingRules.baseSize} (base)`)
+  }
 
   const handleNavigate = (v) => {
     setView(v)
-    setSidebarOpen(false)
   }
 
   const handleAvatarUpdate = () => {
@@ -137,11 +126,16 @@ export default function App() {
         <div className="main-content">
           <div className="top-bar">
             <div style={{ width: 32 }} />
-            <div className="top-bar-title">智裁 PatternAI</div>
+            <div className="top-bar-title">{t('appName')}</div>
             <div style={{ width: 32 }} />
           </div>
           <div className="page-content">
-            <AuthScreen onRegister={() => setAuthed(true)} />
+            <AuthScreen onRegister={() => {
+              setAuthed(true)
+              const u = getUser()
+              setUser(u)
+              setUserPurpose(u?.purpose || 'personal')
+            }} />
           </div>
         </div>
       </div>
@@ -153,7 +147,7 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      {/* Sidebar Overlay */}
+      {/* Sidebar Overlay (mobile) */}
       {sidebarOpen && (
         <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />
       )}
@@ -162,17 +156,25 @@ export default function App() {
       <div className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo">P</div>
-          <div>
-            <div className="sidebar-title">智裁 PatternAI</div>
-            <div className="sidebar-subtitle">AI 服装纸样生成工具</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="sidebar-title">{t('appName')}</div>
+            <div className="sidebar-subtitle">{t('appSubtitle')}</div>
           </div>
+          {/* 收起按钮 */}
+          <button
+            className="sidebar-collapse-btn"
+            onClick={() => setSidebarOpen(false)}
+            title={t('collapseSidebar')}
+          >
+            ‹
+          </button>
         </div>
 
         <div className="sidebar-user" onClick={() => handleNavigate('account')}>
           {currentAvatar ? (
             <img
               src={currentAvatar}
-              alt="头像"
+              alt="avatar"
               style={{
                 width: 40, height: 40, borderRadius: '50%',
                 objectFit: 'cover', flexShrink: 0,
@@ -182,10 +184,27 @@ export default function App() {
             <ScissorsAvatar size={40} fontSize={20} />
           )}
           <div className="sidebar-user-info">
-            <div className="sidebar-user-name">{user?.account || '未登录'}</div>
+            <div className="sidebar-user-name">{user?.account || ''}</div>
             <div className="sidebar-user-purpose">
-              {user?.purpose === 'personal' ? '个人使用' : user?.purpose === 'commercial' ? '商业用途' : ''}
+              {isPersonal ? t('personalModeText') : t('commercialModeText')}
             </div>
+          </div>
+        </div>
+
+        {/* 语言切换器 */}
+        <div className="sidebar-lang-section">
+          <div className="sidebar-lang-label">{t('language')}</div>
+          <div className="lang-switcher">
+            {languages.map((l) => (
+              <button
+                key={l.code}
+                className={`lang-switcher-item ${lang === l.code ? 'active' : ''}`}
+                onClick={() => changeLang(l.code)}
+              >
+                <span>{l.flag}</span>
+                <span>{l.label}</span>
+              </button>
+            ))}
           </div>
         </div>
 
@@ -194,64 +213,60 @@ export default function App() {
             className={`sidebar-nav-item ${view === 'home' ? 'active' : ''}`}
             onClick={() => handleNavigate('home')}
           >
-            <span className="sidebar-nav-icon">🏠</span>
-            <span className="sidebar-nav-label">主页</span>
-            <span className="sidebar-nav-en">Home</span>
+            <span className="sidebar-nav-icon">{isPersonal ? '🏠' : '🏭'}</span>
+            <span className="sidebar-nav-label">{isPersonal ? t('personalCustom') : t('ecommerceGrading')}</span>
           </div>
           <div
             className={`sidebar-nav-item ${view === 'manual' ? 'active' : ''}`}
             onClick={() => handleNavigate('manual')}
           >
             <span className="sidebar-nav-icon">📚</span>
-            <span className="sidebar-nav-label">学习手册</span>
-            <span className="sidebar-nav-en">Learning</span>
+            <span className="sidebar-nav-label">{t('learningManual')}</span>
           </div>
           <div
             className={`sidebar-nav-item ${view === 'history' ? 'active' : ''}`}
             onClick={() => handleNavigate('history')}
           >
             <span className="sidebar-nav-icon">🕐</span>
-            <span className="sidebar-nav-label">历史记录</span>
-            <span className="sidebar-nav-en">History</span>
+            <span className="sidebar-nav-label">{t('history')}</span>
           </div>
           <div
             className={`sidebar-nav-item ${view === 'account' ? 'active' : ''}`}
             onClick={() => handleNavigate('account')}
           >
             <span className="sidebar-nav-icon">👤</span>
-            <span className="sidebar-nav-label">个人账户</span>
-            <span className="sidebar-nav-en">Account</span>
+            <span className="sidebar-nav-label">{t('account')}</span>
           </div>
         </div>
 
         <div className="sidebar-footer">
-          <div className="sidebar-version">PatternAI v2.0</div>
+          <div className="sidebar-version">{t('version')}</div>
           <div
             className="sidebar-logout"
-            onClick={() => {
-              logout()
-              setAuthed(false)
-            }}
+            onClick={() => { logout(); setAuthed(false) }}
           >
-            退出登录 / Logout
+            {t('logout')}
           </div>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="main-content">
-        {/* Top Bar with Menu Button */}
+        {/* Top Bar */}
         <div className="top-bar">
-          <div className="top-bar-menu" onClick={() => setSidebarOpen(true)}>
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
+          {!sidebarOpen && (
+            <div className="top-bar-menu" onClick={() => setSidebarOpen(true)}>
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          )}
+          {sidebarOpen && <div style={{ width: 32 }} />}
           <div className="top-bar-title">
-            {view === 'home' && '智裁 PatternAI'}
-            {view === 'manual' && '学习手册'}
-            {view === 'history' && '历史记录'}
-            {view === 'account' && '个人账户'}
+            {view === 'home' && (isPersonal ? t('personalCustom') : t('ecommerceGrading'))}
+            {view === 'manual' && t('learningManual')}
+            {view === 'history' && t('history')}
+            {view === 'account' && t('account')}
           </div>
           <div style={{ width: 32 }} />
         </div>
@@ -259,24 +274,32 @@ export default function App() {
         {/* View Content */}
         <div className="page-content">
           {view === 'home' && (
-            <>
-              {screen === 'upload' && <UploadScreen onUpload={handleUpload} />}
-              {screen === 'loading' && (
-                <LoadingScreen imageCount={images.length} onComplete={handleAnalysisComplete} />
-              )}
-              {screen === 'result' && (
-                <ResultScreen
-                  images={images}
-                  onReset={handleReset}
-                  userPurpose={user?.purpose}
-                  recordId={currentRecordId}
-                  currentVersion={currentVersion}
-                  customSizes={currentCustomSizes}
-                  sizeLabel={currentSizeLabel}
-                  onRegenerate={handleRegenerate}
-                />
-              )}
-            </>
+            isPersonal ? (
+              <PersonalCustom key="personal" userPurpose="personal" />
+            ) : (
+              <>
+                {screen === 'upload' && <UploadScreen onUpload={handleUpload} />}
+                {screen === 'loading' && (
+                  <LoadingScreen
+                    imageCount={images.length}
+                    onComplete={handleAnalysisComplete}
+                  />
+                )}
+                {screen === 'result' && (
+                  <ResultScreen
+                    images={images}
+                    onReset={handleReset}
+                    userPurpose={userPurpose}
+                    recordId={currentRecordId}
+                    currentVersion={currentVersion}
+                    customSizes={currentCustomSizes}
+                    sizeLabel={currentSizeLabel}
+                    onRegenerate={handleRegenerate}
+                    uploadMetadata={uploadMetadata}
+                  />
+                )}
+              </>
+            )
           )}
           {view === 'manual' && <LearningManual />}
           {view === 'history' && (
@@ -291,6 +314,8 @@ export default function App() {
               avatarVersion={avatarVersion}
               onAvatarChange={handleAvatarUpdate}
               onLogout={() => { logout(); setAuthed(false) }}
+              onSwitchMode={handleSwitchMode}
+              currentMode={userPurpose}
             />
           )}
         </div>
@@ -299,23 +324,22 @@ export default function App() {
   )
 }
 
-function AccountView({ user, avatarVersion, onAvatarChange, onLogout }) {
+function AccountView({ user, avatarVersion, onAvatarChange, onLogout, onSwitchMode, currentMode }) {
+  const { t } = useLang()
   const fileInputRef = useRef(null)
   const currentAvatar = getAvatar()
+  const [showSwitchConfirm, setShowSwitchConfirm] = useState(false)
+  const [pendingMode, setPendingMode] = useState(null)
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0]
     if (!file) return
-
-    // 限制文件大小（2MB）
     if (file.size > 2 * 1024 * 1024) {
-      alert('图片不能超过 2MB / Image must be under 2MB')
+      alert('图片不能超过 2MB')
       return
     }
-
     const reader = new FileReader()
     reader.onload = (ev) => {
-      // 压缩图片到 128x128
       const img = new Image()
       img.onload = () => {
         const canvas = document.createElement('canvas')
@@ -337,6 +361,20 @@ function AccountView({ user, avatarVersion, onAvatarChange, onLogout }) {
     onAvatarChange()
   }
 
+  const handleModeSwitch = (newMode) => {
+    if (newMode === currentMode) return
+    setPendingMode(newMode)
+    setShowSwitchConfirm(true)
+  }
+
+  const confirmModeSwitch = () => {
+    if (onSwitchMode && pendingMode) {
+      onSwitchMode(pendingMode)
+    }
+    setShowSwitchConfirm(false)
+    setPendingMode(null)
+  }
+
   if (!user) return null
 
   return (
@@ -347,7 +385,7 @@ function AccountView({ user, avatarVersion, onAvatarChange, onLogout }) {
           {currentAvatar ? (
             <img
               src={currentAvatar}
-              alt="头像"
+              alt="avatar"
               style={{
                 width: 80, height: 80, borderRadius: '50%',
                 objectFit: 'cover',
@@ -357,7 +395,6 @@ function AccountView({ user, avatarVersion, onAvatarChange, onLogout }) {
           ) : (
             <ScissorsAvatar size={80} fontSize={40} />
           )}
-          {/* Camera button overlay */}
           <div
             onClick={() => fileInputRef.current?.click()}
             style={{
@@ -382,7 +419,7 @@ function AccountView({ user, avatarVersion, onAvatarChange, onLogout }) {
         />
         <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>{user.account}</div>
         <div style={{ fontSize: 13, color: 'var(--text-light)' }}>
-          {user.purpose === 'personal' ? '个人使用 / Personal Use' : '商业用途 / Commercial Use'}
+          {currentMode === 'personal' ? t('personalModeText') : t('commercialModeText')}
         </div>
         {currentAvatar && (
           <button
@@ -390,35 +427,53 @@ function AccountView({ user, avatarVersion, onAvatarChange, onLogout }) {
             style={{ fontSize: 12, padding: '6px 14px', marginTop: 10 }}
             onClick={handleRemoveAvatar}
           >
-            恢复默认头像 / Reset Avatar
+            {t('resetBtn')}
           </button>
         )}
       </div>
 
+      {/* 模式切换 */}
+      <div className="card">
+        <div className="card-title">
+          <span className="card-title-icon">🔄</span>
+          {t('switchMode')}
+        </div>
+        <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
+          <button
+            className={`btn ${currentMode === 'personal' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ flex: 1, fontSize: 13 }}
+            onClick={() => handleModeSwitch('personal')}
+          >
+            🏠 {t('switchToPersonal')}
+          </button>
+          <button
+            className={`btn ${currentMode === 'commercial' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ flex: 1, fontSize: 13 }}
+            onClick={() => handleModeSwitch('commercial')}
+          >
+            🏭 {t('switchToCommercial')}
+          </button>
+        </div>
+      </div>
+
       {/* Account info */}
       <div className="card">
-        <div className="card-title"><span className="card-title-icon">📋</span>账户信息 / Account Info</div>
+        <div className="card-title"><span className="card-title-icon">📋</span>{t('account')}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-            <span style={{ color: 'var(--text-secondary)' }}>账号 / Account</span>
+            <span style={{ color: 'var(--text-secondary)' }}>{t('phoneOrEmail')}</span>
             <strong>{user.account}</strong>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-            <span style={{ color: 'var(--text-secondary)' }}>年龄 / Age</span>
+            <span style={{ color: 'var(--text-secondary)' }}>{t('age')}</span>
             <strong>{user.age || '-'}</strong>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-            <span style={{ color: 'var(--text-secondary)' }}>用途 / Purpose</span>
-            <strong>{user.purpose === 'personal' ? '自己做衣服' : '服装制作/放码'}</strong>
+            <span style={{ color: 'var(--text-secondary)' }}>{t('purpose')}</span>
+            <strong>{user.purpose === 'personal' ? t('purposePersonal') : t('purposeCommercial')}</strong>
           </div>
-          {user.purposeText && (
-            <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              <div style={{ marginBottom: 4 }}>说明 / Notes:</div>
-              <div>{user.purposeText}</div>
-            </div>
-          )}
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-            <span style={{ color: 'var(--text-secondary)' }}>注册时间 / Registered</span>
+            <span style={{ color: 'var(--text-secondary)' }}>{t('registeredAt')}</span>
             <strong>{user.registeredAt ? new Date(user.registeredAt).toLocaleDateString('zh-CN') : '-'}</strong>
           </div>
         </div>
@@ -426,9 +481,32 @@ function AccountView({ user, avatarVersion, onAvatarChange, onLogout }) {
 
       <div className="card">
         <button className="btn btn-secondary" onClick={onLogout}>
-          退出登录 / Logout
+          {t('logout')}
         </button>
       </div>
+
+      {/* 模式切换确认弹窗 */}
+      {showSwitchConfirm && (
+        <div className="export-modal-overlay" onClick={() => setShowSwitchConfirm(false)}>
+          <div className="export-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 340 }}>
+            <div className="export-modal-header">
+              <div className="export-modal-title">🔄 {t('switchMode')}</div>
+              <div className="export-modal-close" onClick={() => setShowSwitchConfirm(false)}>✕</div>
+            </div>
+            <div style={{ padding: 16, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              {t('switchModeConfirm')}
+            </div>
+            <div className="export-actions">
+              <button className="btn btn-secondary" onClick={() => setShowSwitchConfirm(false)}>
+                {t('cancel')}
+              </button>
+              <button className="btn btn-primary" onClick={confirmModeSwitch}>
+                {t('confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

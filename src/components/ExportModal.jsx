@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { generatePatternPDF, generatePatternPDFDoc, exportDXF, exportPRJ } from '../utils/pdfExport.js'
-import { garmentInfo } from '../data/mockData.js'
+import { garmentInfo, gradingRules } from '../data/mockData.js'
 
 const FORMATS = [
   {
@@ -34,8 +34,8 @@ export default function ExportModal({ visible, onClose, customSizes, sizeLabel }
   const [exporting, setExporting] = useState(false)
   const [exportDone, setExportDone] = useState(false)
 
-  const defaultName = `PatternAI_${garmentInfo.nameEn.replace(/\s+/g, '_')}_${sizeLabel || 'S'}`
-  const opts = { sizeLabel: sizeLabel || 'S (base)', customSizes: customSizes || null }
+  const defaultName = `PatternAI_${garmentInfo.nameEn.replace(/\s+/g, '_')}_${sizeLabel || gradingRules.baseSize}`
+  const opts = { sizeLabel: sizeLabel || `${gradingRules.baseSize} (base)`, customSizes: customSizes || null }
 
   // 生成 PDF 预览
   const generatePreview = useCallback(() => {

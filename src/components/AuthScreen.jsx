@@ -1,29 +1,29 @@
 import { useState, useEffect } from 'react'
 import { getUser, setUser } from '../utils/storage.js'
-
-// 使用原因选项 / Purpose options
-const PURPOSE_OPTIONS = [
-  {
-    value: 'personal',
-    label: '自己做衣服（个人使用）',
-    labelEn: 'Make my own clothes (Personal use)',
-    icon: '✂️',
-  },
-  {
-    value: 'commercial',
-    label: '服装制作/放码（商业用途）',
-    labelEn: 'Garment production / Grading (Commercial)',
-    icon: '🏭',
-  },
-]
+import { useLang } from '../i18n/LanguageContext.jsx'
 
 export default function AuthScreen({ onRegister }) {
+  const { t } = useLang()
   const [existingUser, setExistingUser] = useState(null)
   const [account, setAccount] = useState('')
   const [age, setAge] = useState('')
   const [purpose, setPurpose] = useState('')
   const [purposeText, setPurposeText] = useState('')
   const [error, setError] = useState('')
+
+  // 使用原因选项 / Purpose options
+  const PURPOSE_OPTIONS = [
+    {
+      value: 'personal',
+      label: t('purposePersonal'),
+      icon: '✂️',
+    },
+    {
+      value: 'commercial',
+      label: t('purposeCommercial'),
+      icon: '🏭',
+    },
+  ]
 
   // 读取已注册用户，用于显示「直接登录」
   useEffect(() => {
@@ -33,7 +33,7 @@ export default function AuthScreen({ onRegister }) {
 
   const validate = () => {
     if (!account.trim()) {
-      setError('请输入手机号或邮箱 / Please enter phone or email')
+      setError(t('enterPhone'))
       return false
     }
     // 简单校验：手机号（11位数字）或邮箱（含 @）
@@ -41,15 +41,15 @@ export default function AuthScreen({ onRegister }) {
     const isPhone = /^1\d{10}$/.test(acc)
     const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(acc)
     if (!isPhone && !isEmail) {
-      setError('请输入有效的手机号或邮箱 / Invalid phone or email')
+      setError(t('invalidPhone'))
       return false
     }
     if (!age.trim() || isNaN(Number(age)) || Number(age) <= 0 || Number(age) > 120) {
-      setError('请输入有效的年龄 / Please enter a valid age')
+      setError(t('enterAge'))
       return false
     }
     if (!purpose) {
-      setError('请选择使用原因 / Please select a purpose')
+      setError(t('selectPurpose'))
       return false
     }
     setError('')
@@ -105,7 +105,7 @@ export default function AuthScreen({ onRegister }) {
           color: 'var(--text)',
           marginBottom: 4,
         }}>
-          智裁 PatternAI
+          {t('appName')}
         </h1>
         <p style={{
           fontSize: 12,
@@ -113,10 +113,7 @@ export default function AuthScreen({ onRegister }) {
           textAlign: 'center',
           lineHeight: 1.5,
         }}>
-          AI 服装纸样生成工具
-          <span style={{ fontSize: 11, color: 'var(--text-light)', marginLeft: 6 }}>
-            AI Garment Pattern Generator
-          </span>
+          {t('appSubtitle')}
         </p>
       </div>
 
@@ -144,7 +141,7 @@ export default function AuthScreen({ onRegister }) {
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>
-                欢迎回来
+                {t('welcomeBack')}
               </div>
               <div style={{
                 fontSize: 12,
@@ -158,7 +155,7 @@ export default function AuthScreen({ onRegister }) {
             </div>
           </div>
           <button className="btn btn-primary" onClick={handleQuickLogin}>
-            直接登录 / Quick Login
+            {t('quickLogin')}
           </button>
         </div>
       )}
@@ -167,9 +164,9 @@ export default function AuthScreen({ onRegister }) {
       <div className="card fade-in">
         <div className="card-title">
           <span className="card-title-icon">📝</span>
-          {existingUser ? '注册新账号' : '创建账号'}
+          {existingUser ? t('registerNew') : t('createAccount')}
           <span style={{ fontSize: 11, color: 'var(--text-light)', fontWeight: 400, marginLeft: 4 }}>
-            / Register
+            / {t('register')}
           </span>
         </div>
 
@@ -182,16 +179,13 @@ export default function AuthScreen({ onRegister }) {
             color: 'var(--text)',
             marginBottom: 6,
           }}>
-            手机号或邮箱 <span style={{ color: 'var(--danger)' }}>*</span>
-            <span style={{ fontSize: 10, color: 'var(--text-light)', fontWeight: 400, marginLeft: 4 }}>
-              Phone or Email
-            </span>
+            {t('phoneOrEmail')} <span style={{ color: 'var(--danger)' }}>*</span>
           </label>
           <input
             type="text"
             className="custom-input"
             style={{ paddingRight: 12 }}
-            placeholder="请输入手机号或邮箱"
+            placeholder={t('phoneOrEmailPlaceholder')}
             value={account}
             onChange={(e) => setAccount(e.target.value)}
             autoComplete="username"
@@ -207,23 +201,20 @@ export default function AuthScreen({ onRegister }) {
             color: 'var(--text)',
             marginBottom: 6,
           }}>
-            年龄 <span style={{ color: 'var(--danger)' }}>*</span>
-            <span style={{ fontSize: 10, color: 'var(--text-light)', fontWeight: 400, marginLeft: 4 }}>
-              Age
-            </span>
+            {t('age')} <span style={{ color: 'var(--danger)' }}>*</span>
           </label>
           <div className="custom-input-wrapper">
             <input
               type="number"
               inputMode="numeric"
               className="custom-input"
-              placeholder="请输入年龄"
+              placeholder={t('agePlaceholder')}
               value={age}
               onChange={(e) => setAge(e.target.value)}
               min="1"
               max="120"
             />
-            <span className="custom-input-unit">岁</span>
+            <span className="custom-input-unit">{t('ageUnit')}</span>
           </div>
         </div>
 
@@ -236,10 +227,7 @@ export default function AuthScreen({ onRegister }) {
             color: 'var(--text)',
             marginBottom: 8,
           }}>
-            使用原因 <span style={{ color: 'var(--danger)' }}>*</span>
-            <span style={{ fontSize: 10, color: 'var(--text-light)', fontWeight: 400, marginLeft: 4 }}>
-              Purpose
-            </span>
+            {t('purpose')} <span style={{ color: 'var(--danger)' }}>*</span>
           </label>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {PURPOSE_OPTIONS.map((opt) => {
@@ -268,9 +256,6 @@ export default function AuthScreen({ onRegister }) {
                       color: selected ? 'var(--primary)' : 'var(--text)',
                     }}>
                       {opt.label}
-                    </div>
-                    <div style={{ fontSize: 11, color: 'var(--text-light)' }}>
-                      {opt.labelEn}
                     </div>
                   </div>
                   <div style={{
@@ -308,9 +293,9 @@ export default function AuthScreen({ onRegister }) {
             color: 'var(--text)',
             marginBottom: 6,
           }}>
-            使用原因详细说明
+            {t('purposeDetails')}
             <span style={{ fontSize: 10, color: 'var(--text-light)', fontWeight: 400, marginLeft: 4 }}>
-              Details (optional)
+              {t('detailsOptional')}
             </span>
           </label>
           <textarea
@@ -323,7 +308,7 @@ export default function AuthScreen({ onRegister }) {
               fontFamily: 'inherit',
               lineHeight: 1.5,
             }}
-            placeholder="可填写您具体的使用场景，例如：为家人做日常服装 / 电商批量放码等"
+            placeholder={t('purposeDetailsPlaceholder')}
             value={purposeText}
             onChange={(e) => setPurposeText(e.target.value)}
             maxLength={200}
@@ -355,7 +340,7 @@ export default function AuthScreen({ onRegister }) {
 
         {/* 注册按钮 */}
         <button className="btn btn-primary" onClick={handleRegister} style={{ width: '100%', marginTop: 4 }}>
-          {existingUser ? '注册并切换账号 / Switch Account' : '注册 / Register'}
+          {existingUser ? t('switchAccount') : t('register')}
         </button>
       </div>
 
@@ -367,8 +352,7 @@ export default function AuthScreen({ onRegister }) {
         padding: '16px 24px 32px',
         lineHeight: 1.6,
       }}>
-        注册即表示同意您的信息仅保存在本地设备<br/>
-        Your data is stored locally on this device only.
+        {t('privacyNotice')}
       </div>
     </div>
   )

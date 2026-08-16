@@ -1,8 +1,16 @@
 import { useState, useRef } from 'react'
+import { useLang } from '../i18n/LanguageContext.jsx'
 
 export default function UploadScreen({ onUpload }) {
+  const { t } = useLang()
   const [images, setImages] = useState([])
   const fileInputRef = useRef(null)
+
+  // 附加信息（可选）
+  const [showExtra, setShowExtra] = useState(false)
+  const [description, setDescription] = useState('')
+  const [sizeUnit, setSizeUnit] = useState('cm')
+  const [sizeRows, setSizeRows] = useState([]) // [{ part: '', value: '' }]
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files || [])
@@ -24,7 +32,32 @@ export default function UploadScreen({ onUpload }) {
   }
 
   const handleStart = () => {
-    onUpload(images)
+    // 组装附加信息
+    const metadata = {}
+    if (description.trim()) {
+      metadata.description = description.trim()
+    }
+    // 过滤有效的尺寸行
+    const validSizes = sizeRows.filter(r => r.part.trim() && r.value.trim())
+    if (validSizes.length > 0) {
+      metadata.sizes = validSizes.map(r => ({ part: r.part.trim(), value: parseFloat(r.value) }))
+      metadata.sizeUnit = sizeUnit
+    }
+    onUpload(images, Object.keys(metadata).length > 0 ? metadata : null)
+  }
+
+  // 尺寸行操作
+  const addSizeRow = () => {
+    if (sizeRows.length >= 10) return
+    setSizeRows([...sizeRows, { part: '', value: '' }])
+  }
+
+  const removeSizeRow = (idx) => {
+    setSizeRows(sizeRows.filter((_, i) => i !== idx))
+  }
+
+  const updateSizeRow = (idx, field, value) => {
+    setSizeRows(sizeRows.map((r, i) => i === idx ? { ...r, [field]: value } : r))
   }
 
   return (
@@ -32,8 +65,8 @@ export default function UploadScreen({ onUpload }) {
       <div className="upload-screen">
         <div className="upload-hero">
           <div className="upload-hero-icon">✂️</div>
-          <h1>智裁 PatternAI</h1>
-          <p>上传多张服装图片（正面、背面、细节等）<br/>AI 自动识别款式，生成纸样图纸与新手教程</p>
+          <h1>{t('uploadTitle')}</h1>
+          <p style={{ whiteSpace: 'pre-line' }}>{t('uploadDesc')}</p>
         </div>
 
         <input
@@ -52,8 +85,8 @@ export default function UploadScreen({ onUpload }) {
           onClick={() => fileInputRef.current?.click()}
         >
           <div className="upload-zone-icon">📷</div>
-          <div className="upload-zone-text">点击上传服装图片</div>
-          <div className="upload-zone-hint">支持多张 · 拍照或相册选择 · JPG/PNG</div>
+          <div className="upload-zone-text">{t('clickUpload')}</div>
+          <div className="upload-zone-hint">{t('uploadHint')}</div>
         </div>
 
         {/* Image previews */}
@@ -62,7 +95,7 @@ export default function UploadScreen({ onUpload }) {
             {images.map((img, i) => (
               <div key={i} className="image-preview-item">
                 <img src={img} alt={`预览 ${i + 1}`} className="image-preview-img" />
-                <div className="image-preview-badge">{i === 0 ? '正面' : i === 1 ? '背面' : `细节${i - 1}`}</div>
+                <div className="image-preview-badge">{i === 0 ? t('front') : i === 1 ? t('back') : `${t('detail')}${i - 1}`}</div>
                 <button
                   className="image-preview-remove"
                   onClick={(e) => { e.stopPropagation(); handleRemove(i) }}
@@ -75,15 +108,111 @@ export default function UploadScreen({ onUpload }) {
             {images.length < 6 && (
               <div className="image-preview-add" onClick={() => fileInputRef.current?.click()}>
                 <span className="image-preview-add-icon">+</span>
-                <span className="image-preview-add-text">添加</span>
+                <span className="image-preview-add-text">{t('add')}</span>
               </div>
             )}
           </div>
         )}
 
+        {/* 附加信息（可选） */}
+        <div className="extra-info-section">
+          <div
+            className="extra-info-toggle"
+            onClick={() => setShowExtra(!showExtra)}
+          >
+            <span className="extra-info-toggle-icon">{showExtra ? '▾' : '▸'}</span>
+            <span>{t('extraInfo')}</span>
+            <span className="extra-info-toggle-hint">{t('extraInfoHint')}</span>
+          </div>
+
+          {showExtra && (
+            <div className="extra-info-body fade-in">
+              {/* 描述输入 */}
+              <div style={{ marginBottom: 14 }}>
+                <label className="extra-info-label">
+                  {t('descriptionLabel')}
+                </label>
+                <textarea
+                  className="custom-input extra-textarea"
+                  placeholder={t('descriptionPlaceholder')}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  maxLength={300}
+                />
+                <div className="extra-char-count">{description.length}/300</div>
+              </div>
+
+              {/* 尺寸表 */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <label className="extra-info-label" style={{ marginBottom: 0 }}>
+                    {t('sizeTable')}
+                  </label>
+                  {/* 单位选择（全局，只需选一次） */}
+                  <div className="size-unit-switcher">
+                    <button
+                      className={`size-unit-btn ${sizeUnit === 'cm' ? 'active' : ''}`}
+                      onClick={() => setSizeUnit('cm')}
+                    >
+                      {t('unitCm')}
+                    </button>
+                    <button
+                      className={`size-unit-btn ${sizeUnit === 'inch' ? 'active' : ''}`}
+                      onClick={() => setSizeUnit('inch')}
+                    >
+                      {t('unitInch')}
+                    </button>
+                  </div>
+                </div>
+
+                {/* 尺寸行 */}
+                {sizeRows.length > 0 && (
+                  <div className="size-rows-list">
+                    {sizeRows.map((row, idx) => (
+                      <div key={idx} className="size-row">
+                        <input
+                          type="text"
+                          className="custom-input size-row-part"
+                          placeholder={t('sizePartPlaceholder')}
+                          value={row.part}
+                          onChange={(e) => updateSizeRow(idx, 'part', e.target.value)}
+                        />
+                        <input
+                          type="number"
+                          className="custom-input size-row-value"
+                          placeholder={t('sizeValuePlaceholder')}
+                          value={row.value}
+                          onChange={(e) => updateSizeRow(idx, 'value', e.target.value)}
+                        />
+                        <span className="size-row-unit">{sizeUnit}</span>
+                        <button
+                          className="size-row-remove"
+                          onClick={() => removeSizeRow(idx)}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* 添加尺寸行 */}
+                {sizeRows.length < 10 && (
+                  <button className="btn-size-add" onClick={addSizeRow}>
+                    + {t('addSize')}{sizeRows.length > 0 ? `（${sizeRows.length}/10）` : ''}
+                  </button>
+                )}
+                {sizeRows.length >= 10 && (
+                  <div className="size-max-hint">{t('maxSizeReached')}</div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
         {images.length > 0 && (
           <button className="btn btn-primary slide-up" onClick={handleStart} style={{ marginTop: 16 }}>
-            🔍 开始 AI 识别（{images.length} 张图片）
+            🔍 {t('startAI')}（{images.length} {t('imagesCount')}）
           </button>
         )}
 
@@ -91,55 +220,30 @@ export default function UploadScreen({ onUpload }) {
           <div className="upload-feature">
             <div className="upload-feature-icon" style={{ background: 'rgba(108,92,231,0.1)' }}>📐</div>
             <div className="upload-feature-text">
-              <h4>自动纸样生成</h4>
-              <p>识别款式结构，生成各裁片纸样图纸</p>
+              <h4>{t('generateBilingual')}</h4>
+              <p>{t('patternDesc', { count: 6 })}</p>
             </div>
           </div>
           <div className="upload-feature">
             <div className="upload-feature-icon" style={{ background: 'rgba(0,206,201,0.1)' }}>📚</div>
             <div className="upload-feature-text">
-              <h4>学习手册</h4>
-              <p>图解纸样符号、缝制步骤，小白也能做</p>
+              <h4>{t('learningManual')}</h4>
+              <p>{t('tutorialIntro')}</p>
             </div>
           </div>
           <div className="upload-feature">
             <div className="upload-feature-icon" style={{ background: 'rgba(253,203,110,0.15)' }}>📄</div>
             <div className="upload-feature-text">
-              <h4>中英双语纸样</h4>
-              <p>纸样标注中英双语，支持自定义尺寸导出</p>
+              <h4>{t('generateBilingual')}</h4>
+              <p>{t('patternDesc', { count: 6 })}</p>
             </div>
           </div>
           <div className="upload-feature">
             <div className="upload-feature-icon" style={{ background: 'rgba(255,118,117,0.1)' }}>🤖</div>
             <div className="upload-feature-text">
-              <h4>AI 智能识别</h4>
-              <p>支持背心、衬衫、裙子、裤子、连衣裙等多品类</p>
+              <h4>AI</h4>
+              <p>{t('uploadHint')}</p>
             </div>
-          </div>
-        </div>
-
-        {/* Supported garment types */}
-        <div style={{
-          width: '100%', marginTop: 16, padding: 14,
-          background: 'var(--card-bg)', borderRadius: 'var(--radius)',
-          boxShadow: 'var(--shadow)',
-        }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>
-            🏷️ 支持识别的服装类型 / Supported Garment Types
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {['背心', 'T恤', '衬衫', '卫衣', '裙子', '裤子', '连衣裙', '外套', '针织衫'].map(type => (
-              <span key={type} style={{
-                fontSize: 11, padding: '3px 8px', borderRadius: 12,
-                background: 'var(--bg)', color: 'var(--text-secondary)', fontWeight: 500,
-              }}>
-                {type}
-              </span>
-            ))}
-          </div>
-          <div style={{ fontSize: 10, color: 'var(--text-light)', marginTop: 8, lineHeight: 1.4 }}>
-            💡 建议上传正面、背面、侧面等多角度图片，提高识别准确率<br/>
-            Upload multiple angles for better accuracy
           </div>
         </div>
       </div>

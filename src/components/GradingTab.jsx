@@ -1,21 +1,23 @@
 import { gradingRules, gradingPoints } from '../data/mockData.js'
+import { useLang } from '../i18n/LanguageContext.jsx'
 
 export default function GradingTab() {
+  const { t } = useLang()
   return (
     <div className="fade-in">
       <div className="card">
         <div className="card-title">
           <span className="card-title-icon">🔢</span>
-          放码规则表（单位：cm）
+          {t('gradingRuleTable')}
         </div>
         <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.5 }}>
-          以 <strong style={{ color: 'var(--primary)' }}>S 码</strong> 为基准码，各码号相对于 S 码的尺寸增减量。正值表示增大，0 为基准。
+          {t('gradingRuleDesc', { base: gradingRules.baseSize })}
         </p>
         <div className="data-table-wrapper">
           <table className="data-table">
             <thead>
               <tr>
-                <th className="row-name">部位</th>
+                <th className="row-name">{t('partLabel')}</th>
                 {gradingRules.sizes.map((s) => (
                   <th key={s} className={s === gradingRules.baseSize ? 'base-size' : ''}>{s}</th>
                 ))}
@@ -49,7 +51,7 @@ export default function GradingTab() {
       <div className="card">
         <div className="card-title">
           <span className="card-title-icon">📐</span>
-          放码基准点
+          {t('gradingBasePoint')}
         </div>
         <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
           {gradingPoints.map((gp, i) => (
@@ -65,7 +67,7 @@ export default function GradingTab() {
           color: 'var(--primary)',
           fontWeight: 600,
         }}>
-          💡 放码采用推板法，以 S 码为基准向大码方向推放，各部位按比例同步调整，保证款式结构不变。
+          {t('gradingMethodTip', { base: gradingRules.baseSize })}
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { materialUsage } from '../data/mockData.js'
+import { materialUsage, gradingRules } from '../data/mockData.js'
 
 function CuttingLayoutSVG() {
   const { fabricWidth, fabricLength, pieces } = materialUsage.cuttingLayout
@@ -125,8 +125,8 @@ export default function MaterialTab() {
                 const withWaste = (length * 1.05).toFixed(2)
                 return (
                   <tr key={size}>
-                    <td className="row-name" style={size === 'S' ? { color: 'var(--primary)', fontWeight: 700 } : {}}>
-                      {size}{size === 'S' ? ' (基准)' : ''}
+                    <td className="row-name" style={size === gradingRules.baseSize ? { color: 'var(--primary)', fontWeight: 700 } : {}}>
+                      {size}{size === gradingRules.baseSize ? ' (基准)' : ''}
                     </td>
                     <td>{length.toFixed(2)}</td>
                     <td style={{ color: 'var(--success)', fontWeight: 600 }}>{withWaste}</td>
@@ -142,7 +142,7 @@ export default function MaterialTab() {
       <div className="material-card">
         <div className="card-title">
           <span className="card-title-icon">✂️</span>
-          裁剪排料图 / Cutting Layout（S 码）
+          裁剪排料图 / Cutting Layout（{gradingRules.baseSize} 码）
         </div>
         <div className="cutting-layout-wrapper">
           <CuttingLayoutSVG />

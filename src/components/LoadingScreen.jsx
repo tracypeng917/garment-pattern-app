@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { gradingRules } from '../data/mockData.js'
 
 const STEPS = [
   { label: '多图预处理与特征提取', labelEn: 'Multi-image preprocessing & feature extraction', duration: 500 },
@@ -8,7 +9,7 @@ const STEPS = [
   { label: '服装数据库比对（10,000+ 款式）', labelEn: 'Database matching (10,000+ styles)', duration: 600 },
   { label: '结构分解与裁片提取', labelEn: 'Structure decomposition & piece extraction', duration: 500 },
   { label: '纸样图纸生成（中英双语）', labelEn: 'Pattern generation (bilingual)', duration: 500 },
-  { label: '尺寸放码计算（S 码基准）', labelEn: 'Size grading calculation (S base)', duration: 400 },
+  { label: `尺寸放码计算（${gradingRules.baseSize} 码基准）`, labelEn: `Size grading calculation (${gradingRules.baseSize} base)`, duration: 400 },
   { label: '新手教程与用料计算', labelEn: 'Tutorial & material calculation', duration: 300 },
 ]
 

@@ -235,13 +235,13 @@ function wrapTextCanvas(ctx, text, maxWidthPx) {
 /**
  * 生成纸样 PDF 文档（中英双语）
  * @param {Object} options - 导出选项
- * @param {string} [options.sizeLabel='S'] - 码号标签
+ * @param {string} [options.sizeLabel='M'] - 码号标签
  * @param {Object} [options.customSizes] - 自定义尺寸
  * @param {string} [options.fileName] - 自定义文件名
  * @returns {string} 实际保存的文件名
  */
 export function generatePatternPDF(options = {}) {
-  const { sizeLabel = 'S', customSizes = null, fileName } = options
+  const { sizeLabel = 'M', customSizes = null, fileName } = options
 
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
   const pageWidth = 210
@@ -264,7 +264,7 @@ export function generatePatternPDF(options = {}) {
 
   doc.setFontSize(11)
   drawBilingualText(doc, `Size / 码号: ${sizeLabel}  |  Generated / 生成日期: ${new Date().toLocaleDateString('en-US')}`, margin, 36)
-  drawBilingualText(doc, `Base Size / 放码基准: S  |  Confidence / 识别置信度: ${garmentInfo.confidence}%`, margin, 42)
+  drawBilingualText(doc, `Base Size / 放码基准: ${gradingRules.baseSize}  |  Confidence / 识别置信度: ${garmentInfo.confidence}%`, margin, 42)
 
   y = 54
   doc.setTextColor(45, 52, 54)
@@ -285,7 +285,7 @@ export function generatePatternPDF(options = {}) {
     `Fabric / 面料: ${garmentInfo.fabric} / ${garmentInfo.fabricEn}`,
     `Difficulty / 难度: ${garmentInfo.difficulty} / ${garmentInfo.difficultyEn}`,
     `Pattern Pieces / 裁片: ${patternPieces.length} types / ${patternPieces.length} 类, ${totalCount} total / 共 ${totalCount} 片`,
-    `Base Size / 放码基准: S`,
+    `Base Size / 放码基准: ${gradingRules.baseSize}`,
   ]
   infoLines.forEach(line => {
     drawBilingualText(doc, line, margin, y)
@@ -548,7 +548,7 @@ export function generatePatternPDF(options = {}) {
  * @returns {jsPDF} doc object
  */
 export function generatePatternPDFDoc(options = {}) {
-  const { sizeLabel = 'S', customSizes = null } = options
+  const { sizeLabel = 'M', customSizes = null } = options
 
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
   const pageWidth = 210
@@ -570,7 +570,7 @@ export function generatePatternPDFDoc(options = {}) {
 
   doc.setFontSize(11)
   drawBilingualText(doc, `Size / 码号: ${sizeLabel}  |  Generated / 生成日期: ${new Date().toLocaleDateString('en-US')}`, margin, 36)
-  drawBilingualText(doc, `Base Size / 放码基准: S  |  Confidence / 识别置信度: ${garmentInfo.confidence}%`, margin, 42)
+  drawBilingualText(doc, `Base Size / 放码基准: ${gradingRules.baseSize}  |  Confidence / 识别置信度: ${garmentInfo.confidence}%`, margin, 42)
 
   y = 54
   doc.setTextColor(45, 52, 54)
@@ -589,7 +589,7 @@ export function generatePatternPDFDoc(options = {}) {
     `面料 / Fabric: ${garmentInfo.fabric} / ${garmentInfo.fabricEn}`,
     `难度 / Difficulty: ${garmentInfo.difficulty} / ${garmentInfo.difficultyEn}`,
     `裁片 / Pattern Pieces: ${patternPieces.length} 类, 共 ${patternPieces.reduce((s, p) => s + p.count, 0)} 片`,
-    `放码基准 / Base Size: S`,
+    `放码基准 / Base Size: ${gradingRules.baseSize}`,
   ]
   infoLines.forEach(line => {
     drawBilingualText(doc, line, margin, y, { fontSize: 10 })
@@ -957,13 +957,13 @@ function flattenSvgPathToPoints(svgPath) {
  * - TEXT 实体提供中英双语标注
  * - 纯文本 UTF-8 编码，下载为 .dxf
  * @param {Object} options
- * @param {string} [options.sizeLabel='S']
+ * @param {string} [options.sizeLabel='M']
  * @param {Object} [options.customSizes]
  * @param {string} [options.fileName]
  * @returns {string} DXF 文本内容
  */
 export function exportDXF(options = {}) {
-  const { sizeLabel = 'S', customSizes = null, fileName } = options
+  const { sizeLabel = 'M', customSizes = null, fileName } = options
 
   const out = []
   const push = (code, value) => {
@@ -1088,13 +1088,13 @@ export function exportDXF(options = {}) {
 /**
  * 生成 PRJ 格式工程文件（JSON），包含款式信息、裁片数据、尺寸数据、放码规则、用料与工序。
  * @param {Object} options
- * @param {string} [options.sizeLabel='S']
+ * @param {string} [options.sizeLabel='M']
  * @param {Object} [options.customSizes]
  * @param {string} [options.fileName]
  * @returns {string} PRJ JSON 内容
  */
 export function exportPRJ(options = {}) {
-  const { sizeLabel = 'S', customSizes = null, fileName } = options
+  const { sizeLabel = 'M', customSizes = null, fileName } = options
 
   const totalCount = patternPieces.reduce((s, p) => s + p.count, 0)
 
@@ -1105,7 +1105,7 @@ export function exportPRJ(options = {}) {
     exportedAt: new Date().toISOString(),
     generator: 'PatternAI | 智裁',
     sizeLabel,
-    baseSize: 'S',
+    baseSize: gradingRules.baseSize,
     customSizes,
 
     // 款式信息
@@ -1186,7 +1186,7 @@ export function exportPRJ(options = {}) {
  * 统一导出函数，根据 format 调用对应导出函数。
  * @param {Object} options
  * @param {'pdf'|'dxf'|'prj'} [options.format='pdf'] 导出格式
- * @param {string} [options.sizeLabel='S'] 码号标签
+ * @param {string} [options.sizeLabel='M'] 码号标签
  * @param {Object} [options.customSizes] 自定义尺寸
  * @param {string} [options.fileName] 自定义文件名
  * @returns {string|undefined} 导出内容（PDF 返回文件名，DXF/PRJ 返回文本内容）

@@ -1,6 +1,6 @@
 // 模拟服装识别与纸样数据
 // 款式：夏季无袖针织背心
-// 放码基准码：S
+// 放码基准码：M
 // 所有标注支持中英双语
 
 export const garmentInfo = {
@@ -24,7 +24,7 @@ export const garmentInfo = {
 }
 
 // 纸样裁片定义（SVG路径 + 尺寸标注）— 双语
-// 所有尺寸基于 S 码基准
+// 所有尺寸基于 M 码基准
 export const patternPieces = [
   {
     id: 'front',
@@ -147,10 +147,10 @@ export const sizeMeasurements = {
   ]
 }
 
-// 放码规则（以 S 码为基准）— 双语
+// 放码规则（以 M 码为基准）— 双语
 export const gradingRules = {
   sizes: ['S', 'M', 'L', 'XL', 'XXL'],
-  baseSize: 'S',
+  baseSize: 'M',
   rows: [
     { name: '衣长', nameEn: 'Length', diffs: [0, 2, 4, 6, 8] },
     { name: '胸围', nameEn: 'Bust', diffs: [0, 4, 8, 12, 16] },
@@ -169,7 +169,9 @@ export const bodyMeasurements = {
     { name: '身高', nameEn: 'Height', values: [155, 160, 165, 170, 175] },
     { name: '胸围', nameEn: 'Bust', values: [80, 84, 88, 92, 96] },
     { name: '腰围', nameEn: 'Waist', values: [64, 68, 72, 76, 80] },
+    { name: '臀围', nameEn: 'Hip', values: [88, 92, 96, 100, 104] },
     { name: '肩宽', nameEn: 'Shoulder', values: [35, 36, 37, 38, 39] },
+    { name: '袖长', nameEn: 'Sleeve Length', values: [55, 56, 57, 58, 59] },
     { name: '领围', nameEn: 'Neck', values: [32, 33, 34, 35, 36] },
   ]
 }
@@ -181,7 +183,7 @@ export const gradingPoints = [
   { piece: '包边条', pieceEn: 'Binding', point: '以长度方向中心为基准', pointEn: 'Center of length direction' },
 ]
 
-// 用料计算（S 码为基准）— 双语
+// 用料计算（M 码为基准）— 双语
 export const materialUsage = {
   fabric: {
     name: '主面料',
@@ -320,7 +322,7 @@ export const tutorialSections = [
 // 尺寸调整工具函数（同前，略作调整以适配新数据结构）
 export function recommendSize(userBody) {
   const { rows, sizes } = bodyMeasurements
-  let bestSize = 'S'
+  let bestSize = gradingRules.baseSize
   let minDiff = Infinity
   const diffs = {}
 

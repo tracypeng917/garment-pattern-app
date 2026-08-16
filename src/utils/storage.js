@@ -19,6 +19,15 @@ export const BODY_MEASUREMENT_FIELDS = [
   '颈围',
 ]
 
+// 私人定制（个人模式）必填身材尺寸字段 / Personal custom required body fields
+// 个人模式不使用 S/M/L 放码，仅以用户净尺寸为准，身高/胸围/腰围/臀围为必填项。
+export const PERSONAL_REQUIRED_FIELDS = [
+  '身高',
+  '胸围',
+  '腰围',
+  '臀围',
+]
+
 /**
  * 生成唯一 ID
  * Generate a unique ID (timestamp + random + counter)
@@ -134,6 +143,21 @@ export function logout() {
   const data = safeParse(safeGetItem(USER_KEY), null)
   if (!data) return
   safeSetItem(USER_KEY, JSON.stringify({ isLoggedIn: false, user: data.user }))
+}
+
+/**
+ * Switch user purpose mode (personal ↔ commercial)
+ */
+export function switchUserMode(newPurpose) {
+  try {
+    const data = JSON.parse(localStorage.getItem('patternai_user') || '{}')
+    if (!data || !data.user) return null
+    data.user.purpose = newPurpose
+    localStorage.setItem('patternai_user', JSON.stringify(data))
+    return data.user
+  } catch {
+    return null
+  }
 }
 
 // ==================== 用户头像 / User Avatar ====================
