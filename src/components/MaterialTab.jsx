@@ -64,7 +64,14 @@ function CuttingLayoutSVG() {
   )
 }
 
-export default function MaterialTab() {
+export default function MaterialTab({ userPurpose = 'commercial' }) {
+  const isPersonal = userPurpose === 'personal'
+
+  // 私人定制模式下只显示当前尺寸的用量
+  const currentSizeLabel = isPersonal ? '自定义尺寸' : `${gradingRules.baseSize} 码`
+  const currentUsage = materialUsage.fabric.usageBySize[gradingRules.baseSize] || materialUsage.fabric.usageBySize['M'] || 1.2
+  const currentWithWaste = (currentUsage * 1.05).toFixed(2)
+
   return (
     <div className="fade-in">
       {/* Main fabric */}
@@ -79,7 +86,7 @@ export default function MaterialTab() {
             <div className="material-item-spec">{materialUsage.fabric.type} / {materialUsage.fabric.typeEn} · 门幅 {materialUsage.fabric.width}</div>
           </div>
           <div className="material-item-right">
-            <div className="material-item-value">{materialUsage.fabric.unitLength}m</div>
+            <div className="material-item-value">{isPersonal ? currentUsage.toFixed(2) : materialUsage.fabric.unitLength}m</div>
             <div className="material-item-unit">单件用量</div>
           </div>
         </div>
@@ -105,44 +112,58 @@ export default function MaterialTab() {
         </div>
       </div>
 
-      {/* Usage by size */}
+      {/* Usage — 私人定制只显示当前尺寸，电商模式显示各码 */}
       <div className="material-card">
         <div className="card-title">
           <span className="card-title-icon">📊</span>
-          各码面料用量
+          {isPersonal ? '当前尺寸用量' : '各码面料用量'}
         </div>
-        <div className="data-table-wrapper">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th className="row-name">码号</th>
-                <th>用料(m)</th>
-                <th>含损耗(m)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Object.entries(materialUsage.fabric.usageBySize).map(([size, length]) => {
-                const withWaste = (length * 1.05).toFixed(2)
-                return (
-                  <tr key={size}>
-                    <td className="row-name" style={size === gradingRules.baseSize ? { color: 'var(--primary)', fontWeight: 700 } : {}}>
-                      {size}{size === gradingRules.baseSize ? ' (基准)' : ''}
-                    </td>
-                    <td>{length.toFixed(2)}</td>
-                    <td style={{ color: 'var(--success)', fontWeight: 600 }}>{withWaste}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+
+        {isPersonal ? (
+          <div className="material-item">
+            <div className="material-item-left">
+              <div className="material-item-name">{currentSizeLabel}</div>
+              <div className="material-item-spec">含 {materialUsage.fabric.wasteRate} 损耗</div>
+            </div>
+            <div className="material-item-right">
+              <div className="material-item-value">{currentWithWaste}m</div>
+              <div className="material-item-unit">用料（含损耗）</div>
+            </div>
+          </div>
+        ) : (
+          <div className="data-table-wrapper">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th className="row-name">码号</th>
+                  <th>用料(m)</th>
+                  <th>含损耗(m)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(materialUsage.fabric.usageBySize).map(([size, length]) => {
+                  const withWaste = (length * 1.05).toFixed(2)
+                  return (
+                    <tr key={size}>
+                      <td className="row-name" style={size === gradingRules.baseSize ? { color: 'var(--primary)', fontWeight: 700 } : {}}>
+                        {size}{size === gradingRules.baseSize ? ' (基准)' : ''}
+                      </td>
+                      <td>{length.toFixed(2)}</td>
+                      <td style={{ color: 'var(--success)', fontWeight: 600 }}>{withWaste}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Cutting Layout */}
       <div className="material-card">
         <div className="card-title">
           <span className="card-title-icon">✂️</span>
-          裁剪排料图 / Cutting Layout（{gradingRules.baseSize} 码）
+          裁剪排料图 / Cutting Layout{isPersonal ? '' : `（${gradingRules.baseSize} 码）`}
         </div>
         <div className="cutting-layout-wrapper">
           <CuttingLayoutSVG />

@@ -67,29 +67,6 @@ export default function UploadScreen({ onUpload }) {
           <div className="upload-hero-icon">✂️</div>
           <h1>{t('uploadTitle')}</h1>
           <p style={{ whiteSpace: 'pre-line' }}>{t('uploadDesc')}</p>
-          {/* 品牌参考徽章 */}
-          <div style={{
-            display: 'flex', justifyContent: 'center', gap: 6, marginTop: 10, flexWrap: 'wrap',
-          }}>
-            <span style={{
-              fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 12,
-              background: 'rgba(233, 69, 69, 0.08)', color: '#E94545',
-            }}>
-              H&M 学习
-            </span>
-            <span style={{
-              fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 12,
-              background: 'rgba(35, 35, 35, 0.06)', color: '#232323',
-            }}>
-              Zara 学习
-            </span>
-            <span style={{
-              fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 12,
-              background: 'rgba(108, 92, 231, 0.1)', color: 'var(--primary)',
-            }}>
-              10,000+ 款式库
-            </span>
-          </div>
         </div>
 
         <input

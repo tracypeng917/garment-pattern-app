@@ -108,7 +108,7 @@ export default function LearningManual() {
   const [activeSectionId, setActiveSectionId] = useState(
     saved?.sectionId || learningManual.chapters[0].sections[0].id
   )
-  const [lang, setLang] = useState(LANG.BI)
+  const [lang, setLang] = useState(LANG.ZH)
   const topRef = useRef(null)
 
   const activeChapter = useMemo(

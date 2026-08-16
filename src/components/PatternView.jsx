@@ -227,7 +227,9 @@ function FullscreenPattern({ piece, onClose }) {
   )
 }
 
-export default function PatternView({ customSizes, sizeLabel, version }) {
+export default function PatternView({ customSizes, sizeLabel, version, userPurpose = 'commercial' }) {
+  const { t } = useLang()
+  const isPersonal = userPurpose === 'personal'
   const [expanded, setExpanded] = useState(patternPieces[0]?.id || null)
   const [fullscreenPiece, setFullscreenPiece] = useState(null)
 
@@ -241,7 +243,9 @@ export default function PatternView({ customSizes, sizeLabel, version }) {
       <div className="card" style={{ paddingBottom: 12 }}>
         <div className="card-title">
           <span className="card-title-icon">📐</span>
-          {t('patternTitle')}（{gradingRules.baseSize} {t('baseM').replace(/[()（）]/g, '')}）
+          {t('patternTitle')}
+          {!isPersonal && `（${gradingRules.baseSize} ${t('baseM').replace(/[()（）]/g, '')}）`}
+          {isPersonal && customSizes && '（自定义尺寸）'}
         </div>
         <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
           共 {patternPieces.length} 类裁片。点击各裁片查看详细尺寸标注。图纸含布纹方向、关键点位标注。支持 1:1 打印输出。
@@ -271,7 +275,9 @@ export default function PatternView({ customSizes, sizeLabel, version }) {
 
               {/* Measurements */}
               <div style={{ marginBottom: 8, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
-                {t('measurements')}（{gradingRules.baseSize} · cm）
+                {t('measurements')}
+                {!isPersonal && `（${gradingRules.baseSize} · cm）`}
+                {isPersonal && '（cm）'}
               </div>
               <div className="pattern-measurements">
                 {Object.entries(piece.measurements).map(([key, val]) => (
@@ -293,12 +299,14 @@ export default function PatternView({ customSizes, sizeLabel, version }) {
                 >
                   ⛶ 全屏预览
                 </button>
-                <button
-                  className="btn btn-secondary"
-                  style={{ fontSize: 12, padding: '10px 16px' }}
-                >
-                  📏 查看放码
-                </button>
+                {!isPersonal && (
+                  <button
+                    className="btn btn-secondary"
+                    style={{ fontSize: 12, padding: '10px 16px' }}
+                  >
+                    📏 查看放码
+                  </button>
+                )}
                 <button
                   className="btn btn-secondary"
                   style={{ fontSize: 12, padding: '10px 16px' }}

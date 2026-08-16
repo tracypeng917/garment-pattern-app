@@ -26,7 +26,8 @@ const FORMATS = [
   },
 ]
 
-export default function ExportModal({ visible, onClose, customSizes, sizeLabel }) {
+export default function ExportModal({ visible, onClose, customSizes, sizeLabel, userPurpose = 'commercial' }) {
+  const isPersonal = userPurpose === 'personal'
   const [selectedFormat, setSelectedFormat] = useState('pdf')
   const [fileName, setFileName] = useState('')
   const [previewUrl, setPreviewUrl] = useState(null)
@@ -34,8 +35,8 @@ export default function ExportModal({ visible, onClose, customSizes, sizeLabel }
   const [exporting, setExporting] = useState(false)
   const [exportDone, setExportDone] = useState(false)
 
-  const defaultName = `PatternAI_${garmentInfo.nameEn.replace(/\s+/g, '_')}_${sizeLabel || gradingRules.baseSize}`
-  const opts = { sizeLabel: sizeLabel || `${gradingRules.baseSize} (base)`, customSizes: customSizes || null }
+  const defaultName = `PatternAI_${garmentInfo.nameEn.replace(/\s+/g, '_')}_${sizeLabel || (isPersonal ? 'Custom' : gradingRules.baseSize)}`
+  const opts = { sizeLabel: sizeLabel || (isPersonal ? 'Custom' : `${gradingRules.baseSize} (base)`), customSizes: customSizes || null }
 
   // 生成 PDF 预览
   const generatePreview = useCallback(() => {

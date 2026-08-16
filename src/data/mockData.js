@@ -17,9 +17,8 @@ export const garmentInfo = {
   fabric: '针织面料',
   fabricEn: 'Knit Fabric',
   recognitionTime: '1.8s',
-  confidence: 97.2,
-  description: 'AI 已学习 H&M 和 Zara 品牌数据，识别为夏季无袖针织背心，圆领、无袖、宽松版型（参考 H&M Relaxed Fit 标准）。含前片、后片及三处包边条（领口、袖窿、下摆），共5个裁片。适合针织面料，四线包缝工艺。M码对应 H&M M码(88/72/96) 和 Zara M码(90/70/98)。',
-  descriptionEn: 'AI trained on H&M & Zara brand data. Identified as a summer sleeveless knit vest with round neckline, sleeveless design, and relaxed fit (H&M Relaxed Fit reference). Includes front, back, and three binding strips (neckline, armhole, hem), 5 pattern pieces total. Size M corresponds to H&M M (88/72/96) and Zara M (90/70/98).',
+  description: '识别为夏季无袖针织背心，圆领、无袖、宽松版型。含前片、后片及三处包边条（领口、袖窿、下摆），共5个裁片。适合针织面料，四线包缝工艺。',
+  descriptionEn: 'Identified as a summer sleeveless knit vest with round neckline, sleeveless design, and relaxed fit. Includes front, back, and three binding strips (neckline, armhole, hem), 5 pattern pieces total. Suitable for knit fabrics with overlock stitching.',
   images: [], // 用户上传的多张图片
 }
 

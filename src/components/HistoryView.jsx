@@ -32,11 +32,26 @@ function relativeTime(isoStr) {
   return formatDateTime(isoStr).date
 }
 
-export default function HistoryView({ onBack, onRestore }) {
+export default function HistoryView({ onBack, onRestore, userPurpose = 'commercial' }) {
+  const isPersonal = userPurpose === 'personal'
   const [records, setRecords] = useState([])
   const [expandedId, setExpandedId] = useState(null)
   const [previewImage, setPreviewImage] = useState(null)
   const [confirmClear, setConfirmClear] = useState(false)
+
+  // 格式化尺寸标签 — 私人定制模式下不显示基码
+  const formatSizeLabel = (sizeLabel, customSizes) => {
+    if (isPersonal) {
+      if (customSizes && Object.keys(customSizes).length > 0) {
+        return '自定义尺寸'
+      }
+      if (sizeLabel && sizeLabel.includes('base')) {
+        return '自定义尺寸'
+      }
+      return sizeLabel || '自定义尺寸'
+    }
+    return sizeLabel || 'S (base)'
+  }
 
   // 加载历史记录
   const loadRecords = useCallback(() => {
@@ -291,16 +306,18 @@ export default function HistoryView({ onBack, onRestore }) {
                           V{latestVersion?.version || 1}
                           {versionCount > 1 && ` (${versionCount}版本)`}
                         </span>
-                        {record.sizeLabel && (
+                        {formatSizeLabel(record.sizeLabel, record.customSizes) && (
                           <span style={{
                             fontSize: 11,
                             padding: '2px 8px',
                             borderRadius: 20,
-                            background: 'rgba(108, 92, 231, 0.08)',
-                            color: 'var(--primary)',
+                            background: isPersonal
+                              ? 'rgba(0, 184, 148, 0.08)'
+                              : 'rgba(108, 92, 231, 0.08)',
+                            color: isPersonal ? 'var(--success)' : 'var(--primary)',
                             fontWeight: 600,
                           }}>
-                            {record.sizeLabel}
+                            {formatSizeLabel(record.sizeLabel, record.customSizes)}
                           </span>
                         )}
                         <span style={{ fontSize: 11, color: 'var(--text-light)' }}>
@@ -362,7 +379,7 @@ export default function HistoryView({ onBack, onRestore }) {
                                   {v.label}
                                 </span>
                                 <span style={{ color: 'var(--text-light)' }}>
-                                  {v.sizeLabel || 'S (base)'}
+                                  {formatSizeLabel(v.sizeLabel, v.customSizes)}
                                 </span>
                                 <span style={{ color: 'var(--text-light)', marginLeft: 'auto' }}>
                                   {formatDateTime(v.createdAt).date} {formatDateTime(v.createdAt).time}

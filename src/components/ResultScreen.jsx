@@ -18,7 +18,7 @@ export default function ResultScreen({
   recordId,
   currentVersion = 1,
   customSizes: initialCustomSizes = null,
-  sizeLabel: initialSizeLabel = `${gradingRules.baseSize} (base)`,
+  sizeLabel: initialSizeLabel,
   onRegenerate,
   uploadMetadata,
 }) {
@@ -231,14 +231,14 @@ export default function ResultScreen({
                   </div>
                 </div>
               )}
-              {/* AI 调整提示 - 所有模式且有附加信息时显示 */}
-              {(isCommercial || isPersonal) && (
+              {/* AI 调整提示 - 有附加信息时显示 */}
+              {uploadMetadata && (
                 <div style={{
                   marginTop: 8, padding: '6px 10px',
                   background: 'rgba(0, 184, 148, 0.06)', borderRadius: 8,
                   fontSize: 11, color: 'var(--success)', lineHeight: 1.5,
                 }}>
-                  🤖 AI 已根据 H&M 和 Zara 品牌数据及附加信息调整纸样版型和尺寸
+                  🤖 AI 已根据附加信息调整纸样版型和尺寸
                 </div>
               )}
             </div>
@@ -260,8 +260,8 @@ export default function ResultScreen({
 
         {/* Tab Content */}
         <div className="fade-in" key={`${activeTab}-${version}`}>
-          {activeTab === 'overview' && <OverviewTab onExportPDF={handleOpenExport} />}
-          {activeTab === 'pattern' && <PatternView customSizes={customSizes} sizeLabel={sizeLabel} version={version} />}
+          {activeTab === 'overview' && <OverviewTab onExportPDF={handleOpenExport} userPurpose={userPurpose} />}
+          {activeTab === 'pattern' && <PatternView customSizes={customSizes} sizeLabel={sizeLabel} version={version} userPurpose={userPurpose} />}
           {isCommercial && activeTab === 'measure' && <MeasurementsTab customSizes={customSizes} onRegenerate={handleRegeneratePattern} />}
           {isCommercial && activeTab === 'grading' && <GradingTab />}
           {isPersonal && activeTab === 'custom' && (
@@ -272,7 +272,7 @@ export default function ResultScreen({
               userPurpose={userPurpose}
             />
           )}
-          {activeTab === 'material' && <MaterialTab />}
+          {activeTab === 'material' && <MaterialTab userPurpose={userPurpose} />}
           {activeTab === 'sewing' && <SewingTab />}
           {activeTab === 'tutorial' && <TutorialTab />}
         </div>
@@ -298,6 +298,7 @@ export default function ResultScreen({
         onClose={() => setExportModalVisible(false)}
         customSizes={customSizes}
         sizeLabel={sizeLabel}
+        userPurpose={userPurpose}
       />
     </>
   )

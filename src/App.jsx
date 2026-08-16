@@ -306,6 +306,7 @@ export default function App() {
             <HistoryView
               onBack={() => handleNavigate('home')}
               onRestore={handleRestoreFromHistory}
+              userPurpose={userPurpose}
             />
           )}
           {view === 'account' && (

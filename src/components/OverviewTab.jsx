@@ -1,8 +1,9 @@
 import { garmentInfo, patternPieces, materialUsage, sewingSteps, gradingRules } from '../data/mockData.js'
 import { useLang } from '../i18n/LanguageContext.jsx'
 
-export default function OverviewTab({ onExportPDF }) {
+export default function OverviewTab({ onExportPDF, userPurpose = 'commercial' }) {
   const { t } = useLang()
+  const isPersonal = userPurpose === 'personal'
   const totalPieces = patternPieces.reduce((sum, p) => sum + p.count, 0)
   const totalAccessories = materialUsage.accessories.reduce((sum, a) => sum + a.quantity, 0)
   const totalSewingTime = sewingSteps.reduce((sum, s) => {
@@ -12,40 +13,6 @@ export default function OverviewTab({ onExportPDF }) {
 
   return (
     <div className="fade-in">
-      {/* AI 品牌学习信息 */}
-      <div className="card" style={{
-        background: 'linear-gradient(135deg, rgba(108, 92, 231, 0.04), rgba(0, 206, 201, 0.04))',
-        borderColor: 'rgba(108, 92, 231, 0.15)',
-      }}>
-        <div className="card-title">
-          <span className="card-title-icon">🤖</span>
-          AI 识图分析报告
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 10 }}>
-          本次识别基于深度学习模型，已学习 H&M 和 Zara 全部模特图与尺寸表数据，结合品牌版型标准进行精准分析。
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          <span style={{
-            fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 12,
-            background: 'rgba(233, 69, 69, 0.08)', color: '#E94545',
-          }}>
-            H&M 参考比对
-          </span>
-          <span style={{
-            fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 12,
-            background: 'rgba(35, 35, 35, 0.06)', color: '#232323',
-          }}>
-            Zara 参考比对
-          </span>
-          <span style={{
-            fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 12,
-            background: 'rgba(0, 184, 148, 0.08)', color: 'var(--success)',
-          }}>
-            置信度 {garmentInfo.confidence}%
-          </span>
-        </div>
-      </div>
-
       {/* 基础信息 */}
       <div className="card">
         <div className="card-title">
@@ -130,7 +97,9 @@ export default function OverviewTab({ onExportPDF }) {
 
       {/* 操作按钮 */}
       <div style={{ padding: '0 16px 20px' }}>
-        <button className="btn btn-primary" onClick={onExportPDF}>📄 {t('generateBilingual')}{t('baseSizeLabel', { base: gradingRules.baseSize })}</button>
+        <button className="btn btn-primary" onClick={onExportPDF}>
+          📄 {t('generateBilingual')}{!isPersonal && t('baseSizeLabel', { base: gradingRules.baseSize })}
+        </button>
         <div style={{ height: 10 }} />
         <button className="btn btn-secondary">🖨️ {t('connectPrinter')}</button>
       </div>
